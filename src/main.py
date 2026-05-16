@@ -1,5 +1,5 @@
-import httpx
-from fastapi import FastAPI, Request, Response, HTTPException
+import httpx # pyright: ignore[reportMissingImports]
+from fastapi import FastAPI, Request, Response, HTTPException # pyright: ignore[reportMissingImports]
 
 app = FastAPI(title="Secure Gatway")
 
@@ -33,5 +33,5 @@ async def chat_completions(request: Request):
             raise HTTPException(status_code=503, details=f"VLLM unreachable: {exc}")
 
 if __name__ == "__main__":
-    import uvicorn
+    import uvicorn # pyright: ignore[reportMissingImports]
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
