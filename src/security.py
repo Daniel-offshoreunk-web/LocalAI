@@ -4,7 +4,7 @@ from typing import Mapping
 
 from fastapi import HTTPException, Request
 
-from .config import ADMIN_SECRET, TOKEN_PREFIX
+from .config import ADMIN_SECRET, ADMIN_TRUST_DOCKER_BRIDGE, TOKEN_PREFIX
 
 _USERNAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{1,30}[a-z0-9]$")
 _CONTAINER_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,62}$")
@@ -92,9 +92,21 @@ def is_localhost(host: str | None) -> bool:
     return False
 
 
+def is_docker_bridge(host: str | None) -> bool:
+    if not host or not ADMIN_TRUST_DOCKER_BRIDGE:
+        return False
+    bare = host.split("%", 1)[0]
+    if bare.startswith("172.") or bare.startswith("10."):
+        return True
+    return bare.startswith("192.168.")
+
+def is_trusted_admin_client(host: str | None) -> bool:
+    return is_localhost(host) or is_docker_bridge(host)
+
+
 def require_localhost(request: Request) -> None:
     client = request.client
-    if client is None or not is_localhost(client.host):
+    if client is None or not is_trusted_admin_client(client.host):
         raise HTTPException(status_code=403, detail="Admin access is localhost-only.")
 
 

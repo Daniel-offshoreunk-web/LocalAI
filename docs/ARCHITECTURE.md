@@ -21,9 +21,9 @@ EPS Cloud Lab runs on **district-owned hardware**. Students use a browser; all c
                     │           │                              │
                     │     ┌─────┴─────┬──────────────┐        │
                     │     ▼           ▼              ▼        │
-                    │  SQLite    Ollama/vLLM    Docker       │
-                    │  (state)   :11434         engine       │
-                    │  (local)   (local)            │        │
+                    │  SQLite    LocalAI        Docker       │
+                    │  (state)   :8080          engine       │
+                    │  (local)   (internal)         │        │
                     │                               ▼        │
                     │                    ┌─────────────────┐ │
                     │                    │ eps-ws-alice    │ │
@@ -43,7 +43,7 @@ Public-facing FastAPI application:
 
 - Serves student HTML templates
 - Validates session cookies and CSRF tokens
-- Proxies OpenAI-compatible requests to Ollama after token + rate-limit + prompt guard checks
+- Proxies OpenAI-compatible requests to LocalAI after token + rate-limit + prompt guard checks
 - Proxies HTTP/WebSocket for `/lab/*` to the student's code-server container
 
 ### Admin (`src/admin.py`, port 8888)
@@ -71,7 +71,7 @@ Single path to the LLM backend:
 1. Resolve API token in SQLite
 2. Rate limit (IP + user)
 3. Prompt guard (regex + AST on fenced code)
-4. Proxy to `OLLAMA_URL`
+4. Proxy to `INFERENCE_URL` (LocalAI `/v1/chat/completions`) with server-side API key
 
 ### Database (`src/db.py`)
 
@@ -105,21 +105,21 @@ GET /lab/ → session check → status=deployed → proxy to http://eps-ws-{user
 ### AI chat (browser)
 
 ```
-POST /app/ai/chat → session + CSRF → prompt guard → Ollama
+POST /app/ai/chat → session + CSRF → prompt guard → LocalAI
 ```
 
 ### AI chat (Continue/Tabby)
 
 ```
-POST /v1/chat/completions → Bearer sk-eps-… → DB lookup → guard → Ollama
+POST /v1/chat/completions → Bearer sk-eps-… → DB lookup → guard → LocalAI
 ```
 
 ## Deployment profiles
 
 | Profile | Compose file | Inference | Database |
 |---------|--------------|-----------|----------|
-| `pilot` | `docker-compose.pilot.yml` | Ollama localhost | SQLite |
-| `production` | `docker-compose.production.yml` | vLLM (+ Redis stub) | SQLite (Postgres planned) |
+| `pilot` | `docker-compose.pilot.yml` | LocalAI CPU (compose service) | SQLite |
+| `production` | `docker-compose.production.yml` | LocalAI GPU (+ Redis stub) | SQLite (Postgres planned) |
 
 ## File layout
 
@@ -147,6 +147,6 @@ LocalAI/
 ## Extension points
 
 - **Custom code-server image:** set `WORKSPACE_IMAGE` to include Continue pre-configured
-- **vLLM:** point `OLLAMA_URL` to any OpenAI-compatible `/v1` endpoint
+- **Other backends:** point `INFERENCE_URL` to any OpenAI-compatible `/v1` peer (vLLM, remote LocalAI node)
 - **SSO:** add OIDC middleware in front of gateway (production roadmap)
 - **Guardian AI:** extend `prompt_guard.py` + `security_events` (August roadmap)

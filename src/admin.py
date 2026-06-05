@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
+from .auth_store import generate_api_token
 from .config import ADMIN_SECRET, ALLOW_INSECURE_DEFAULTS
 from .db import get_db
 from .orchestrator import get_orchestrator
@@ -34,7 +35,6 @@ async def startup() -> None:
             "Set ADMIN_SECRET before running the admin panel in production."
         )
     await get_db()
-    await get_orchestrator().ensure_network()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -75,10 +75,15 @@ async def approve_registration(reg_id: int, request: Request) -> RedirectRespons
         )
 
     username = sanitize_username(row["username"])
+    api_token = row.get("api_token")
+    if not api_token:
+        api_token = generate_api_token()
+        await db.set_api_token(reg_id, api_token)
+
     await db.set_status(reg_id, "approved")
     orchestrator = get_orchestrator()
     try:
-        result = await orchestrator.deploy_workspace(username)
+        result = await orchestrator.deploy_workspace(username, api_token=api_token)
         await db.set_status(
             reg_id,
             "deployed",

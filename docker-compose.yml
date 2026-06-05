@@ -1,0 +1,95 @@
+# Full EPS Cloud Lab stack — one command:
+#   ./scripts/up.sh
+# or (after .env exists):
+#   docker compose up -d --build
+#
+# Brings up: LocalAI, gateway, admin, and builds the Continue-enabled workspace image.
+
+services:
+  # Builds eps-workspace:latest; exits immediately so gateway can depend on it.
+  # Override entrypoint — the real image entrypoint needs per-student env at deploy time.
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile.workspace
+    image: eps-workspace:latest
+    entrypoint: ["true"]
+    restart: "no"
+
+  localai:
+    image: localai/localai:latest-aio-cpu
+    restart: unless-stopped
+    environment:
+      LOCALAI_API_KEY: ${INFERENCE_API_KEY:-}
+    volumes:
+      - localai-models:/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/readyz"]
+      interval: 30s
+      timeout: 15s
+      retries: 20
+      start_period: 600s
+    networks:
+      - inference_internal
+
+  gateway:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-8000}:8000"
+    env_file: .env
+    volumes:
+      - eps-data:/var/lib/eps
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      ORCHESTRATOR_DB: /var/lib/eps/orchestrator.db
+      INFERENCE_URL: http://localai:8080
+      INFERENCE_API_KEY: ${INFERENCE_API_KEY:-}
+      WORKSPACE_IMAGE: eps-workspace:latest
+      WORKSPACE_GATEWAY_URL: http://gateway:8000
+      DOCKER_NETWORK: gateway_net
+      ALLOW_INSECURE_DEFAULTS: ${ALLOW_INSECURE_DEFAULTS:-1}
+    depends_on:
+      workspace:
+        condition: service_completed_successfully
+      localai:
+        condition: service_started
+    group_add:
+      - "${DOCKER_GID:-0}"
+    networks:
+      - gateway_net
+      - inference_internal
+
+  admin:
+    build: .
+    restart: unless-stopped
+    command: ["python", "-m", "src.main", "admin"]
+    ports:
+      - "127.0.0.1:${ADMIN_PORT:-8888}:8888"
+    env_file: .env
+    group_add:
+      - "${DOCKER_GID:-0}"
+    volumes:
+      - eps-data:/var/lib/eps
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      ORCHESTRATOR_DB: /var/lib/eps/orchestrator.db
+      ADMIN_HOST: 0.0.0.0
+      ADMIN_PORT: 8888
+      ADMIN_TRUST_DOCKER_BRIDGE: 1
+      WORKSPACE_IMAGE: eps-workspace:latest
+      WORKSPACE_GATEWAY_URL: http://gateway:8000
+      DOCKER_NETWORK: gateway_net
+    networks:
+      - gateway_net
+
+networks:
+  gateway_net:
+    name: gateway_net
+    driver: bridge
+  inference_internal:
+    driver: bridge
+
+volumes:
+  eps-data:
+  localai-models:

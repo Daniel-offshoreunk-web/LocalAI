@@ -24,12 +24,15 @@ else
   echo "  skip admin (set ADMIN_SECRET in .env)"
 fi
 
-echo "==> Ollama"
-OLLAMA="${OLLAMA_URL:-http://127.0.0.1:11434}"
-if curl -sf "${OLLAMA}/api/tags" >/dev/null 2>&1; then
-  echo "  ollama OK"
+echo "==> LocalAI inference"
+INFERENCE="${INFERENCE_URL:-${OLLAMA_URL:-http://127.0.0.1:8080}}"
+if curl -sf "${INFERENCE}/readyz" >/dev/null 2>&1; then
+  echo "  localai readyz OK (${INFERENCE})"
+elif curl -sf "${INFERENCE}/v1/models" >/dev/null 2>&1; then
+  echo "  localai /v1/models OK (${INFERENCE})"
 else
-  echo "  ollama unreachable at ${OLLAMA} — pull a model: ollama pull llama3.1:8b"
+  echo "  inference unreachable at ${INFERENCE}"
+  echo "  start LocalAI: docker run -p 8080:8080 localai/localai:latest-aio-cpu"
 fi
 
 echo "==> Docker"

@@ -185,6 +185,19 @@ class Database:
             row = await cursor.fetchone()
             return dict(row) if row else None
 
+    async def set_api_token(self, reg_id: int, api_token: str) -> None:
+        now = _now()
+        async with self.connect() as db:
+            await db.execute(
+                """
+                UPDATE registrations
+                SET api_token = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (api_token, now, reg_id),
+            )
+            await db.commit()
+
     async def record_security_event(
         self,
         username: str | None,

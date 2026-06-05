@@ -2,7 +2,7 @@
 
 This is a shallow guard (regex + optional AST on extracted Python), not a
 sandbox. It blocks common reverse-shell / subprocess patterns in prompts
-before they reach Ollama.
+before they reach the inference backend (LocalAI).
 """
 
 import ast
@@ -75,6 +75,36 @@ def scan_text(text: str) -> list[str]:
     for block in _PYTHON_FENCE.findall(text):
         hits.extend(_ast_violations(block))
     return hits
+
+
+def extract_chat_text(raw_body: bytes) -> str:
+    """Concatenate user message text from an OpenAI chat payload for LLM review."""
+    try:
+        payload = json.loads(raw_body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return ""
+
+    if not isinstance(payload, dict):
+        return ""
+
+    messages = payload.get("messages")
+    if not isinstance(messages, list):
+        return ""
+
+    parts: list[str] = []
+    for msg in messages:
+        if not isinstance(msg, dict) or msg.get("role") != "user":
+            continue
+        content = msg.get("content")
+        if isinstance(content, str):
+            parts.append(content)
+        elif isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    text = block.get("text", "")
+                    if isinstance(text, str):
+                        parts.append(text)
+    return "\n".join(parts).strip()
 
 
 def scan_chat_payload(raw_body: bytes) -> list[str]:

@@ -6,12 +6,12 @@
 |--------|------------|
 | Anonymous compute abuse | Admin approval before `docker run`; rate limits on signup |
 | Stolen API keys | Per-user tokens in DB; revocable by re-deploy; rate limits |
-| Prompt injection / malware gen | `prompt_guard.py` blocks common patterns; events logged |
+| Prompt injection / malware gen | Regex + AST (`prompt_guard.py`), then optional ≥1B guardian model; events logged |
 | Container escape | cap-drop, no-new-privileges, resource limits, isolated network |
 | Admin panel exposure | Binds `127.0.0.1`; requires `X-Admin-Secret` in production |
 | Session hijacking | HttpOnly cookies, CSRF on forms, `SESSION_SECRET` required |
 | Path traversal to other workspaces | Session-bound username; proxy path validation |
-| Direct Ollama access | Must not expose port 11434; firewall example provided |
+| Direct LocalAI access | Must not expose port 8080; gateway holds `INFERENCE_API_KEY` |
 
 ## Production checklist
 
@@ -21,7 +21,8 @@ Before exposing to students on the school network:
 - [ ] `ALLOW_INSECURE_DEFAULTS=0`
 - [ ] `SESSION_COOKIE_SECURE=1` with HTTPS
 - [ ] Admin panel reachable **only** via localhost or SSH tunnel
-- [ ] Ollama bound to `127.0.0.1` (default)
+- [ ] LocalAI reachable only on internal/docker network (not WAN)
+- [ ] `INFERENCE_API_KEY` set when LocalAI is on a shared network segment
 - [ ] Firewall applied (`deploy/nftables/eps-gateway.nft.example`)
 - [ ] Docker socket accessible only to the `eps` service user
 - [ ] `DISABLE_API_REGISTER=1` (web signup only)

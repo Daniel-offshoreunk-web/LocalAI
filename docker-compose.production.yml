@@ -17,9 +17,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       ORCHESTRATOR_DB: /var/lib/eps/orchestrator.db
-      OLLAMA_URL: ${INFERENCE_URL:-http://inference:8000}
+      INFERENCE_URL: ${INFERENCE_URL:-http://localai:8080}
+      INFERENCE_API_KEY: ${INFERENCE_API_KEY:-}
     depends_on:
-      - redis
+      localai:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - gateway_net
       - internal
@@ -44,20 +48,28 @@ services:
     volumes:
       - redis-data:/data
 
-  # Uncomment when vLLM is provisioned (OpenAI-compatible API on port 8000).
-  # inference:
-  #   image: vllm/vllm-openai:latest
-  #   restart: always
-  #   deploy:
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #             count: all
-  #             capabilities: [gpu]
-  #   command: ["--model", "meta-llama/Llama-3.1-8B-Instruct", "--host", "0.0.0.0"]
-  #   networks:
-  #     - internal
+  localai:
+    image: localai/localai:latest-aio-gpu-nvidia-cuda-12
+    restart: always
+    environment:
+      LOCALAI_API_KEY: ${INFERENCE_API_KEY:-}
+    volumes:
+      - localai-models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/readyz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+    networks:
+      - internal
 
 networks:
   gateway_net:
@@ -69,3 +81,4 @@ networks:
 volumes:
   eps-data:
   redis-data:
+  localai-models:

@@ -43,7 +43,7 @@
     <section class="card">
       <h2>Cloud IDE</h2>
       {% if user.status == 'deployed' %}
-      <p>Full VS Code in your browser, running on school servers.</p>
+      <p>Full VS Code in your browser with <strong>Continue</strong> AI already configured.</p>
       <p><a class="btn" href="/lab/" target="_blank" rel="noopener">Open Cloud IDE</a></p>
       {% elif user.status == 'pending' %}
       <p>Your account is waiting for teacher approval. Check back soon.</p>
@@ -66,8 +66,8 @@
     </section>
 
     <section class="card">
-      <h2>Advanced (Continue / Tabby)</h2>
-      <p>If your teacher installed the IDE extension, use this API key — treat it like a password:</p>
+      <h2>Advanced (API key)</h2>
+      <p>Continue is pre-installed in your IDE. This key is already configured there — only copy if you need it elsewhere:</p>
       {% if user.api_token %}
       <code class="token">{{ user.api_token }}</code>
       <p style="font-size:.8rem;color:var(--muted)">Gateway URL: same host, path <code>/v1</code></p>

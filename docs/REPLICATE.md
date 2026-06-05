@@ -11,7 +11,7 @@ This document is written for **IT staff, integrators, and sysadmins** deploying 
 EPS Cloud Lab provides:
 
 1. A **student web portal** (signup, dashboard, cloud IDE link, AI chat)
-2. A **gateway** that proxies AI requests to Ollama/vLLM with per-user API tokens
+2. A **gateway** that proxies AI requests to [LocalAI](https://localai.io/) with per-user API tokens
 3. An **admin approval queue** — no Docker workspace starts until a teacher approves
 4. **Sandboxed code-server containers** per approved student
 
@@ -22,7 +22,7 @@ EPS Cloud Lab provides:
 | 443 | TLS reverse proxy (you provide) | Public / school network |
 | 8000 | Student gateway | Behind proxy or school VLAN |
 | 8888 | Admin panel | **127.0.0.1 only** |
-| 11434 | Ollama | **127.0.0.1 only** |
+| 8080 | LocalAI | **internal / 127.0.0.1 only** |
 
 ---
 
@@ -33,7 +33,7 @@ EPS Cloud Lab provides:
 - **OS:** Fedora 40+, RHEL 9+, or Ubuntu 22.04+ (Fedora is the reference platform)
 - **Python:** 3.12+
 - **Docker:** Engine 24+ with permission for the service user to run `docker`
-- **Ollama:** 0.3+ ([install guide](https://ollama.com/download))
+- **LocalAI:** Docker image `localai/localai` ([quickstart](https://localai.io/basics/getting_started/))
 - **Optional:** NVIDIA driver + CUDA for GPU inference
 
 ### Hardware (minimum pilot)
@@ -89,8 +89,9 @@ ORCHESTRATOR_DB=/var/lib/eps/orchestrator.db
 PUBLIC_BASE_URL=https://lab.yourdistrict.edu
 SESSION_COOKIE_SECURE=1
 ALLOW_INSECURE_DEFAULTS=0
-DEFAULT_CHAT_MODEL=llama3.1:8b
-OLLAMA_URL=http://127.0.0.1:11434
+DEFAULT_CHAT_MODEL=llama-3.2-3b-instruct:q4_k_m
+INFERENCE_URL=http://127.0.0.1:8080
+INFERENCE_API_KEY=<match LocalAI LOCALAI_API_KEY>
 ```
 
 Add the `eps` user to the `docker` group:
@@ -99,15 +100,17 @@ Add the `eps` user to the `docker` group:
 sudo usermod -aG docker eps
 ```
 
-### 3.4 Install and start Ollama
+### 3.4 Install and start LocalAI
 
 ```bash
-curl -fsSL https://ollama.com/install.sh | sh
-sudo systemctl enable --now ollama
-ollama pull llama3.1:8b
+docker run -d --name local-ai --restart unless-stopped \
+  -p 127.0.0.1:8080:8080 \
+  -e LOCALAI_API_KEY=<same-as-INFERENCE_API_KEY> \
+  -v localai-models:/models \
+  localai/localai:latest-aio-cpu
 ```
 
-Verify: `curl http://127.0.0.1:11434/api/tags`
+Verify: `curl http://127.0.0.1:8080/readyz`
 
 ### 3.5 Install systemd services
 

@@ -7,9 +7,9 @@ version: 0.0.1
 schema: v1
 
 models:
-  - name: EPS Llama 3.1 8B
+  - name: EPS LocalAI Chat
     provider: openai
-    model: llama3.1:8b
+    model: llama-3.2-3b-instruct:q4_k_m
     apiBase: GATEWAY_URL/v1
     apiKey: sk-eps-PASTE_STUDENT_TOKEN_HERE
     roles:
@@ -18,7 +18,7 @@ models:
 
   - name: EPS Autocomplete
     provider: openai
-    model: llama3.1:8b
+    model: llama-3.2-3b-instruct:q4_k_m
     apiBase: GATEWAY_URL/v1
     apiKey: sk-eps-PASTE_STUDENT_TOKEN_HERE
     roles:
@@ -27,7 +27,7 @@ models:
 tabAutocompleteModel:
   name: EPS Autocomplete
   provider: openai
-  model: llama3.1:8b
+  model: llama-3.2-3b-instruct:q4_k_m
   apiBase: GATEWAY_URL/v1
   apiKey: sk-eps-PASTE_STUDENT_TOKEN_HERE
 

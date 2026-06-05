@@ -1,0 +1,17 @@
+# Student cloud IDE — code-server with Continue.dev and gateway config injection.
+FROM codercom/code-server:latest
+
+USER coder
+RUN code-server --install-extension Continue.continue
+
+USER root
+COPY config/continue/config.yaml.template /etc/eps/continue/config.yaml.template
+COPY scripts/workspace-entrypoint.sh /usr/local/bin/workspace-entrypoint.sh
+RUN chmod +x /usr/local/bin/workspace-entrypoint.sh \
+    && mkdir -p /home/coder/project \
+    && chown -R coder:coder /home/coder/project /etc/eps
+
+USER coder
+WORKDIR /home/coder/project
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/workspace-entrypoint.sh"]

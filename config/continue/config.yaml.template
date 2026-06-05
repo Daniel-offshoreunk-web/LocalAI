@@ -1,0 +1,31 @@
+# Rendered at workspace start from the student's gateway token (do not edit by hand).
+name: EPS Cloud Lab
+version: 0.0.1
+schema: v1
+
+models:
+  - name: EPS LocalAI Chat
+    provider: openai
+    model: __CHAT_MODEL__
+    apiBase: __GATEWAY_URL__/v1
+    apiKey: __API_KEY__
+    roles:
+      - chat
+      - edit
+
+  - name: EPS Autocomplete
+    provider: openai
+    model: __CHAT_MODEL__
+    apiBase: __GATEWAY_URL__/v1
+    apiKey: __API_KEY__
+    roles:
+      - autocomplete
+
+tabAutocompleteModel:
+  name: EPS Autocomplete
+  provider: openai
+  model: __CHAT_MODEL__
+  apiBase: __GATEWAY_URL__/v1
+  apiKey: __API_KEY__
+
+allowAnonymousTelemetry: false

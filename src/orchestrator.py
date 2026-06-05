@@ -4,7 +4,12 @@ from typing import Any
 
 from fastapi import HTTPException
 
-from .config import DOCKER_NETWORK, WORKSPACE_IMAGE
+from .config import (
+    DEFAULT_CHAT_MODEL,
+    DOCKER_NETWORK,
+    WORKSPACE_GATEWAY_URL,
+    WORKSPACE_IMAGE,
+)
 from .security import container_name
 
 logger = logging.getLogger(__name__)
@@ -62,12 +67,21 @@ class DockerOrchestrator:
         )
         return code == 0 and out.strip().lower() == "true"
 
-    async def deploy_workspace(self, username: str) -> dict[str, Any]:
+    async def deploy_workspace(
+        self, username: str, *, api_token: str
+    ) -> dict[str, Any]:
+        if not api_token:
+            raise HTTPException(
+                status_code=503,
+                detail="Student API token missing; cannot configure Continue.",
+            )
+
         await self.ensure_network()
         name = container_name(username)
         if await self.container_running(name):
             return {"container_name": name, "already_running": True}
 
+        volume = f"eps-ws-data-{username}"
         cmd = [
             "docker",
             "run",
@@ -86,11 +100,15 @@ class DockerOrchestrator:
             "no-new-privileges",
             "--cap-drop",
             "ALL",
+            "-v",
+            f"{volume}:/home/coder/project",
+            "-e",
+            f"EPS_GATEWAY_URL={WORKSPACE_GATEWAY_URL}",
+            "-e",
+            f"EPS_API_TOKEN={api_token}",
+            "-e",
+            f"EPS_CHAT_MODEL={DEFAULT_CHAT_MODEL}",
             WORKSPACE_IMAGE,
-            "--auth",
-            "none",
-            "--bind-addr",
-            "0.0.0.0:8080",
         ]
         code, out, err = await self._run(*cmd)
         if code != 0:

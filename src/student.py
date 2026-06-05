@@ -13,7 +13,6 @@ from .config import RATE_LIMIT_LOGIN_WINDOW
 from .db import get_db
 from .inference import complete_user_message
 from .orchestrator import get_orchestrator
-from .prompt_guard import scan_text
 from .rate_limit import client_ip, get_rate_limiter
 from .security import sanitize_display_name, sanitize_username, validate_proxy_path
 from .sessions import (
@@ -198,13 +197,6 @@ async def student_ai_chat(request: Request, body: AiChatBody) -> JSONResponse:
             status_code=403,
             detail="Your cloud lab must be approved before using the AI assistant.",
         )
-
-    violations = scan_text(body.message)
-    if violations:
-        await get_db().record_security_event(
-            username, "prompt_blocked", ",".join(violations[:5])
-        )
-        raise HTTPException(status_code=400, detail="Message blocked by safety policy.")
 
     reply = await complete_user_message(request, body.message, row=row)
     return JSONResponse({"reply": reply})

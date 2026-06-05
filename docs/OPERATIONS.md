@@ -24,7 +24,7 @@ docker compose -f docker-compose.pilot.yml restart gateway
 
 ```bash
 curl -sf http://127.0.0.1:8000/health
-curl -sf http://127.0.0.1:11434/api/tags
+curl -sf http://127.0.0.1:8080/readyz
 ./scripts/verify-install.sh
 ```
 
@@ -65,13 +65,12 @@ docker compose -f docker-compose.pilot.yml up -d --build
 
 **Always** backup `orchestrator.db` before upgrading.
 
-## Ollama model management
+## LocalAI model management
 
 ```bash
-ollama list
-ollama pull llama3.1:8b
-# Change model in /etc/eps/cloud-lab.env:
-# DEFAULT_CHAT_MODEL=llama3.1:8b
+curl http://127.0.0.1:8080/v1/models
+# Install models via LocalAI Web UI or gallery; then set in /etc/eps/cloud-lab.env:
+# DEFAULT_CHAT_MODEL=llama-3.2-3b-instruct:q4_k_m
 sudo systemctl restart eps-gateway
 ```
 
@@ -108,9 +107,9 @@ ssh -L 8888:127.0.0.1:8888 eps@lab-host
 
 ### AI: 503 Inference backend unreachable
 
-1. `systemctl status ollama`
-2. `curl http://127.0.0.1:11434/api/tags`
-3. Verify `OLLAMA_URL` in env matches
+1. `docker ps | grep local-ai` (or your LocalAI service name)
+2. `curl http://127.0.0.1:8080/readyz`
+3. Verify `INFERENCE_URL` and `INFERENCE_API_KEY` in env match LocalAI
 
 ### AI: 400 Request blocked by safety policy
 

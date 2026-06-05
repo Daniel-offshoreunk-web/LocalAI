@@ -1,4 +1,9 @@
-"""Shared Ollama inference path — all security checks run here once."""
+"""Shared inference path — all security checks run here once before upstream proxy.
+
+Students and IDE extensions authenticate to *this* gateway (sessions / sk-eps- tokens).
+After rate limits and prompt guard pass, requests are forwarded to LocalAI's
+OpenAI-compatible API (/v1/chat/completions). The upstream API key stays server-side.
+"""
 
 import json
 import logging
@@ -7,13 +12,37 @@ import httpx
 from fastapi import HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 
-from .config import OLLAMA_URL, RATE_LIMIT_CHAT_PER_MIN
+from .config import DEFAULT_CHAT_MODEL, INFERENCE_API_KEY, INFERENCE_URL, RATE_LIMIT_CHAT_PER_MIN
 from .db import get_db
-from .prompt_guard import scan_chat_payload
 from .rate_limit import client_ip, get_rate_limiter
+from .safety import enforce_payload_safety
 from .security import filter_proxy_headers, parse_bearer_token
 
 logger = logging.getLogger(__name__)
+
+# Client credentials must not leak to LocalAI — gateway auth is a separate layer.
+_UPSTREAM_STRIP_AUTH = frozenset(
+    {"authorization", "x-api-key", "xi-api-key", "cookie", "x-csrf-token"}
+)
+
+
+def _chat_completions_url() -> str:
+    return f"{INFERENCE_URL}/v1/chat/completions"
+
+
+def build_upstream_headers(client_headers: dict[str, str] | None = None) -> dict[str, str]:
+    """Headers for LocalAI: hop-by-hop stripped, student auth replaced with server key."""
+    filtered = filter_proxy_headers(client_headers or {})
+    upstream = {
+        k: v
+        for k, v in filtered.items()
+        if k.lower() not in _UPSTREAM_STRIP_AUTH
+    }
+    if INFERENCE_API_KEY:
+        upstream["Authorization"] = f"Bearer {INFERENCE_API_KEY}"
+    if "content-type" not in {k.lower() for k in upstream}:
+        upstream["Content-Type"] = "application/json"
+    return upstream
 
 
 async def _resolve_token_row(token: str) -> dict:
@@ -37,14 +66,7 @@ async def enforce_inference_limits(request: Request, raw_body: bytes, *, row: di
     ):
         raise HTTPException(status_code=429, detail="AI rate limit exceeded. Try again shortly.")
 
-    violations = scan_chat_payload(raw_body)
-    if violations:
-        await get_db().record_security_event(
-            row["username"],
-            "prompt_blocked",
-            ",".join(violations[:5])[:240],
-        )
-        raise HTTPException(status_code=400, detail="Request blocked by safety policy.")
+    await enforce_payload_safety(raw_body, username=row["username"])
 
 
 async def proxy_chat_completions(
@@ -54,7 +76,7 @@ async def proxy_chat_completions(
     token: str | None = None,
     row: dict | None = None,
 ) -> Response:
-    """Proxy to Ollama after auth, rate limits, and prompt guard."""
+    """Proxy to LocalAI after gateway auth, rate limits, and prompt guard."""
     if row is None:
         if not token:
             token = parse_bearer_token(request.headers.get("authorization"))
@@ -62,8 +84,8 @@ async def proxy_chat_completions(
 
     await enforce_inference_limits(request, raw_body, row=row)
 
-    headers = filter_proxy_headers(request.headers)
-    url = f"{OLLAMA_URL}/v1/chat/completions"
+    headers = build_upstream_headers(dict(request.headers))
+    url = _chat_completions_url()
 
     wants_stream = False
     if request.headers.get("content-type", "").startswith("application/json"):
@@ -112,7 +134,7 @@ async def proxy_chat_completions(
                 media_type=upstream.headers.get("content-type"),
             )
         except httpx.RequestError as exc:
-            logger.warning("ollama unreachable: %s", exc)
+            logger.warning("inference backend unreachable (%s): %s", INFERENCE_URL, exc)
             raise HTTPException(
                 status_code=503, detail="Inference backend unreachable."
             ) from exc
@@ -121,23 +143,20 @@ async def proxy_chat_completions(
 async def complete_user_message(request: Request, message: str, *, row: dict) -> str:
     """Browser-safe chat helper — returns assistant text only."""
     payload = {
-        "model": row.get("model") or None,
+        "model": DEFAULT_CHAT_MODEL,
         "messages": [{"role": "user", "content": message}],
         "stream": False,
     }
-    from .config import DEFAULT_CHAT_MODEL
-
-    payload["model"] = DEFAULT_CHAT_MODEL
     raw_body = json.dumps(payload).encode()
     await enforce_inference_limits(request, raw_body, row=row)
 
-    headers = filter_proxy_headers({"Content-Type": "application/json"})
-    url = f"{OLLAMA_URL}/v1/chat/completions"
+    headers = build_upstream_headers({"Content-Type": "application/json"})
+    url = _chat_completions_url()
     async with httpx.AsyncClient(timeout=httpx.Timeout(120.0)) as client:
         try:
             upstream = await client.post(url, headers=headers, content=raw_body)
         except httpx.RequestError as exc:
-            logger.warning("ollama unreachable: %s", exc)
+            logger.warning("inference backend unreachable (%s): %s", INFERENCE_URL, exc)
             raise HTTPException(
                 status_code=503, detail="Inference backend unreachable."
             ) from exc

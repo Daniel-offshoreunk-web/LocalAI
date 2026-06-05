@@ -22,7 +22,7 @@ table inet eps {
     tcp dport 443 accept
 
     # Drop direct access to application ports from outside
-    tcp dport { 8000, 8888, 11434 } drop
+    tcp dport { 8000, 8888, 8080 } drop
 
     # Allow school network to reach gateway directly (optional pilot shortcut)
     tcp dport 8000 ip saddr @school_nets accept
