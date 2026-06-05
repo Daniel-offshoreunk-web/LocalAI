@@ -1,5 +1,7 @@
 # August go-live checklist
 
+**[← README](../README.md)** · [Install](REPLICATE.md) · [Architecture](ARCHITECTURE.md) · [Security](SECURITY.md) · [Operations](OPERATIONS.md) · [Hardware](HARDWARE.md)
+
 Target: **production-ready, replicable deployment** for district use by August.
 
 Status key: ✅ Done · 🟡 Partial · ⬜ Not started
@@ -10,20 +12,20 @@ Status key: ✅ Done · 🟡 Partial · ⬜ Not started
 
 | Item | Status | Notes |
 |------|--------|-------|
-| README.md | ✅ | Entry point + quick start |
-| docs/REPLICATE.md | ✅ | Professional install guide |
-| docs/ARCHITECTURE.md | ✅ | System design |
-| docs/SECURITY.md | ✅ | Hardening checklist |
-| docs/OPERATIONS.md | ✅ | Day-2 runbook |
-| docs/HARDWARE.md | ✅ | Sizing tiers |
-| .env.example | ✅ | All variables documented |
-| LICENSE (MIT) | 🟡 | Placeholder copyright — assign with legal before district release |
-| docker-compose.pilot.yml | ✅ | One-command pilot |
-| docker-compose.production.yml | 🟡 | Stub + Redis; vLLM commented |
-| systemd units | ✅ | Native deploy path |
-| Continue config template | ✅ | config/continue/ |
-| Firewall example | ✅ | deploy/nftables/ |
-| verify-install.sh | ✅ | Post-deploy smoke test |
+| [README.md](../README.md) | ✅ | Entry point + quick start |
+| [REPLICATE.md](REPLICATE.md) | ✅ | Professional install guide |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | ✅ | System design |
+| [SECURITY.md](SECURITY.md) | ✅ | Hardening checklist |
+| [OPERATIONS.md](OPERATIONS.md) | ✅ | Day-2 runbook |
+| [HARDWARE.md](HARDWARE.md) | ✅ | Sizing tiers |
+| [.env.example](../.env.example) | ✅ | All variables documented |
+| [LICENSE.example](../LICENSE.example) | 🟡 | Copy → `LICENSE`; assign copyright with legal before district release |
+| [docker-compose.yml](../docker-compose.yml) | ✅ | One-command pilot stack |
+| [docker-compose.production.yml](../docker-compose.production.yml) | 🟡 | GPU LocalAI + Redis stub |
+| systemd units | ✅ | Native deploy path — [REPLICATE.md](REPLICATE.md) §3 |
+| [Continue config](../config/continue/config.yaml.example) | ✅ | Manual fallback; image pre-wires Continue |
+| Firewall example | ✅ | [deploy/nftables/](../deploy/nftables/) |
+| [verify-install.sh](../scripts/verify-install.sh) | ✅ | Post-deploy smoke test |
 
 ---
 
@@ -35,13 +37,12 @@ Status key: ✅ Done · 🟡 Partial · ⬜ Not started
 | Admin approval queue | ✅ | — |
 | Session + CSRF auth | ✅ | — |
 | DB-backed API tokens | ✅ | Token rotation UI |
-| Prompt guard + security events | ✅ | Guardian heuristics |
+| Prompt guard + guardian LLM + security events | 🟡 | Tune guardian model; L2 heuristics |
 | code-server sandbox | ✅ | Persistent volumes per user |
-| `/v1/chat/completions` proxy | ✅ | vLLM adapter tested |
-| DEPLOY_PROFILE in code | ⬜ | Env-only today; wire in config.py |
+| `/v1/chat/completions` proxy → LocalAI | ✅ | vLLM adapter tested on GPU tier |
+| `DEPLOY_PROFILE` in code | ✅ | `pilot` / `production` in [config](../src/config.py) |
 | Redis rate limits (production) | ⬜ | Required for multi-instance |
-| Custom code-server image + Continue | ⬜ | **High priority for accessibility** |
-| Guardian classifier (small model) | ⬜ | Pilot stretch goal |
+| Custom code-server image + Continue | ✅ | [Dockerfile.workspace](../Dockerfile.workspace) |
 | SSO (Google/Microsoft) | ⬜ | Production optional |
 
 ---
@@ -50,14 +51,13 @@ Status key: ✅ Done · 🟡 Partial · ⬜ Not started
 
 | Week | Task | Owner |
 |------|------|-------|
-| **Now** | Provision Tier A or B hardware | District IT |
-| **Now** | Run REPLICATE.md on staging host | IT / integrator |
+| **Now** | Provision Tier A or B hardware — [HARDWARE.md](HARDWARE.md) | District IT |
+| **Now** | Run [REPLICATE.md](REPLICATE.md) on staging host | IT / integrator |
 | **+1 wk** | TLS + DNS (`lab.district.edu`) | IT |
-| **+1 wk** | Firewall + school CIDR | IT |
+| **+1 wk** | Firewall + school CIDR — [SECURITY.md](SECURITY.md) | IT |
 | **+2 wk** | Teacher training (admin panel) | Staff sponsor |
-| **+2 wk** | Pull Ollama models; load test 10 users | Dev |
-| **+3 wk** | Custom code-server image with Continue | Dev |
-| **+3 wk** | Pen-test on VLAN; fix findings | Security |
+| **+2 wk** | LocalAI model load test; 10 concurrent users | Dev |
+| **+3 wk** | Pen-test on VLAN; fix findings — [SECURITY.md](SECURITY.md) | Security |
 | **+4 wk** | Pilot with 5–10 students (optional dry run) | Research |
 | **August** | Go-live for fall semester | All |
 
@@ -67,11 +67,11 @@ Status key: ✅ Done · 🟡 Partial · ⬜ Not started
 
 A professional can replicate the system if they can:
 
-1. Clone the repo and read **README.md**
-2. Follow **docs/REPLICATE.md** without asking the original developer
-3. Run `./scripts/verify-install.sh` and get all green checks
+1. `git clone https://github.com/Daniel-offshoreunk-web/LocalAI.git` and read [README.md](../README.md)
+2. Follow [REPLICATE.md](REPLICATE.md) without asking the original developer
+3. Run [verify-install.sh](../scripts/verify-install.sh) and get all green checks
 4. Approve a test student and open the cloud IDE in a browser
-5. Point Continue.dev at the gateway using **config/continue/config.yaml.example**
+5. Confirm Continue points at the gateway (pre-installed in `eps-workspace:latest`)
 
 ---
 
@@ -79,11 +79,11 @@ A professional can replicate the system if they can:
 
 Ordered by impact:
 
-1. **Custom code-server Docker image** with Continue pre-installed and gateway URL templated
-2. **Persistent workspace volumes** (`-v eps-ws-{user}:/home/coder`)
-3. **vLLM smoke test** on GPU hardware; document `INFERENCE_URL` in REPLICATE.md
-4. **Guardian L2 heuristics** (rate + paste size flags in admin)
-5. **Pen-test fixes** from district security review
+1. **Persistent workspace volumes** — mount per-user data across container recreation
+2. **vLLM / GPU LocalAI smoke test** on Tier B hardware; document `INFERENCE_URL` in [REPLICATE.md](REPLICATE.md) §7
+3. **Guardian L2 heuristics** (rate + paste size flags in admin)
+4. **Pen-test fixes** from district security review — [SECURITY.md](SECURITY.md)
+5. **Redis-backed rate limits** for production HA
 
 ---
 
@@ -91,10 +91,10 @@ Ordered by impact:
 
 | Risk | Mitigation |
 |------|------------|
-| GPU funding delayed | Run Tier A on CPU with `deepseek-coder:1.3b`; limit concurrent users |
-| Docker socket compromise | Dedicated VM; restrict `eps` user; no public admin |
+| GPU funding delayed | Run Tier A on CPU; limit concurrent users; smaller `DEFAULT_CHAT_MODEL` |
+| Docker socket compromise | Dedicated VM; restrict `eps` user; no public admin — [SECURITY.md](SECURITY.md) |
 | Teacher bottleneck on approvals | Bulk approve UI; pre-register class roster (future) |
-| Continue setup too hard for students | Pre-bake image (priority #1 above) |
+| LocalAI slow first boot | Document wait time in [OPERATIONS.md](OPERATIONS.md); healthcheck in compose |
 
 ---
 
@@ -102,7 +102,7 @@ Ordered by impact:
 
 | Role | Name | Date | Sign-off |
 |------|------|------|----------|
-| IT lead | | | Install per REPLICATE.md |
-| Security | | | SECURITY.md checklist |
+| IT lead | | | Install per [REPLICATE.md](REPLICATE.md) |
+| Security | | | [SECURITY.md](SECURITY.md) checklist |
 | CS teacher | | | Admin workflow tested |
-| Privacy officer | | | Data retention reviewed |
+| Privacy officer | | | Data retention reviewed — [SECURITY.md](SECURITY.md) § Privacy |

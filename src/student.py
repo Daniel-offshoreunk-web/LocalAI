@@ -171,7 +171,8 @@ async def logout(request: Request, csrf_token: str = Form("")) -> RedirectRespon
 @router.get("/dashboard", response_model=None)
 async def dashboard(request: Request):
     username = require_session_username(request)
-    row = await get_db().get_by_username(username)
+    db = await get_db()
+    row = await db.get_by_username(username)
     if not row:
         logout_user(request)
         return RedirectResponse(url="/", status_code=303)
@@ -191,7 +192,8 @@ async def student_ai_chat(request: Request, body: AiChatBody) -> JSONResponse:
     header_csrf = request.headers.get("x-csrf-token")
     verify_form_csrf(request, header_csrf)
     username = require_session_username(request)
-    row = await get_db().get_by_username(username)
+    db = await get_db()
+    row = await db.get_by_username(username)
     if not row or row["status"] != "deployed":
         raise HTTPException(
             status_code=403,
@@ -204,7 +206,8 @@ async def student_ai_chat(request: Request, body: AiChatBody) -> JSONResponse:
 
 async def _require_deployed_lab(request: Request) -> str:
     username = require_session_username(request)
-    row = await get_db().get_by_username(username)
+    db = await get_db()
+    row = await db.get_by_username(username)
     if not row or row["status"] != "deployed":
         raise HTTPException(
             status_code=403,
@@ -241,7 +244,8 @@ async def lab_websocket(websocket: WebSocket, path: str = "") -> None:
     if not username:
         await websocket.close(code=4401)
         return
-    row = await get_db().get_by_username(username)
+    db = await get_db()
+    row = await db.get_by_username(username)
     if not row or row["status"] != "deployed":
         await websocket.close(code=4403)
         return

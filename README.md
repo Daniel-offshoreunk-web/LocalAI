@@ -20,7 +20,7 @@ The project is **open source** so other districts can replicate the same stack o
 - [Repository layout](#repository-layout)
 - [Ports and networking](#ports-and-networking)
 - [Deployment profiles](#deployment-profiles)
-- [Quick start (development)](#quick-start-development)
+- [Quick start (one command)](#quick-start-one-command)
 - [Production deployment](#production-deployment)
 - [Configuration](#configuration)
 - [HTTP API and routes](#http-api-and-routes)
@@ -76,7 +76,7 @@ Students never receive the server’s upstream inference key. They authenticate 
 ## What teachers and IT do
 
 1. SSH to the lab host (admin panel is **localhost-only**).
-2. Open the admin dashboard on port **8888** with the `X-Admin-Secret` header (when configured).
+2. Open **http://127.0.0.1:8888/login** and enter the admin key from `.env` (one failed attempt permanently blocks that IP until another admin unblocks it).
 3. Review the **pending** queue → **Deploy workspace** or **Deny**.
 4. Monitor **security alerts** (blocked prompts, failed logins).
 5. **Stop** a deployed workspace if needed.
@@ -152,7 +152,7 @@ Refuses to start in production without a real `SESSION_SECRET` (unless `ALLOW_IN
 - **Deploy workspace** → triggers Docker run
 - **Deny**, **Stop workspace**
 - **Security alerts** from `security_events` table
-- Requires `ADMIN_SECRET` in production (via `X-Admin-Secret` header)
+- Requires `ADMIN_SECRET` (16+ chars); browser sign-in at `/login` (header auth still works for scripts)
 
 ### Orchestrator (`src/orchestrator.py`)
 
@@ -310,13 +310,13 @@ LocalAI/
 ├── scripts/
 │   ├── generate-secrets.sh
 │   └── verify-install.sh
-├── docker-compose.yml        # Full stack — one `docker compose up`
-├── docker-compose.pilot.yml  # Alias → docker-compose.yml
+├── docker-compose.yml        # Full stack — `./scripts/up.sh`
+├── docker-compose.pilot.yml  # Include alias → docker-compose.yml
 ├── docker-compose.production.yml
 ├── Dockerfile
 ├── Dockerfile.workspace      # code-server + Continue.dev
 ├── .env.example
-└── LICENSE.hidden           # MIT — set copyright holder before distribution
+└── LICENSE.example          # MIT template — copy to LICENSE before distribution
 ```
 
 ---
@@ -342,7 +342,8 @@ Set `DEPLOY_PROFILE=pilot` or `production` in `.env`.
 | | **Pilot** | **Production** |
 |---|-----------|----------------|
 | **Use case** | Research study, 5–10 students | Classroom / district scale |
-| **Compose file** | `docker-compose.pilot.yml` | `docker-compose.production.yml` |
+| **Compose file** | [docker-compose.yml](docker-compose.yml) | [docker-compose.production.yml](docker-compose.production.yml) |
+| **Start command** | `./scripts/up.sh` | Compose production file + GPU host |
 | **Inference** | LocalAI CPU image in compose | LocalAI GPU (+ Redis stub) |
 | **Database** | SQLite at `/var/lib/eps/` | SQLite today; Postgres planned for HA |
 | **Rate limits** | In-memory | Redis when multi-instance |
@@ -357,7 +358,7 @@ Details: [docs/REPLICATE.md](docs/REPLICATE.md) §7
 **Requirements:** Linux, Docker with Compose v2
 
 ```bash
-git clone <repo-url> LocalAI && cd LocalAI
+git clone https://github.com/Daniel-offshoreunk-web/LocalAI.git && cd LocalAI
 chmod +x scripts/*.sh
 ./scripts/up.sh
 ```
@@ -371,7 +372,7 @@ That single command:
 Then:
 
 1. Open `http://127.0.0.1:8000` → create a student account  
-2. Open `http://127.0.0.1:8888` → approve the account (`X-Admin-Secret` header from `.env`)  
+2. Open `http://127.0.0.1:8888/login` → enter `ADMIN_SECRET` from `.env` → approve the account  
 3. Return to the dashboard → **Open Cloud IDE** (Continue is already wired to the gateway with the student's API key)
 
 Verify: `./scripts/verify-install.sh`
@@ -423,7 +424,7 @@ Full reference: [.env.example](.env.example)
 |----------|-------------|
 | `DEPLOY_PROFILE` | `pilot` or `production` |
 | `SESSION_SECRET` | Cookie signing key (**required** in prod) |
-| `ADMIN_SECRET` | Admin `X-Admin-Secret` header (**required** in prod) |
+| `ADMIN_SECRET` | Teacher admin key, 16+ chars (**required** in prod) |
 | `PUBLIC_BASE_URL` | Public HTTPS URL for cookies and Continue config |
 | `SESSION_COOKIE_SECURE` | `1` when using HTTPS |
 | `ORCHESTRATOR_DB` | Path to SQLite file |
@@ -493,8 +494,8 @@ Full tables: [docs/HARDWARE.md](docs/HARDWARE.md)
 
 ## Replicating in another district
 
-1. Clone this repository.
-2. Set the **copyright holder** in `LICENSE.hidden` with your legal/IP office.
+1. Clone this repository: `git clone https://github.com/Daniel-offshoreunk-web/LocalAI.git`
+2. Copy `LICENSE.example` to `LICENSE` and set the **copyright holder** with your legal/IP office.
 3. Follow **[docs/REPLICATE.md](docs/REPLICATE.md)** on a staging host.
 4. Run `./scripts/verify-install.sh`.
 5. Train teachers on the admin approval workflow.
@@ -533,19 +534,24 @@ Tracker: [docs/AUGUST-CHECKLIST.md](docs/AUGUST-CHECKLIST.md)
 | [docs/OPERATIONS.md](docs/OPERATIONS.md) | Backups, updates, troubleshooting |
 | [docs/HARDWARE.md](docs/HARDWARE.md) | Hardware tiers and models |
 | [docs/AUGUST-CHECKLIST.md](docs/AUGUST-CHECKLIST.md) | Go-live checklist |
+| [LICENSE.example](LICENSE.example) | MIT license template |
 
 ---
 
 ## License
 
-MIT — see [LICENSE.hidden](LICENSE.hidden).
+MIT — see [LICENSE.example](LICENSE.example).
 
-**Before distribution:** replace the placeholder copyright line with the actual legal rights holder (you, or your district only after their IP/legal office approves). Do not attribute copyright to an organization without written authorization.
+**Before distribution:** copy `LICENSE.example` to `LICENSE`, replace the placeholder copyright line with the actual legal rights holder (you, or your district only after their IP/legal office approves). Do not attribute copyright to an organization without written authorization.
 
 ---
 
 ## Support
 
+- **Overview:** [README.md](README.md) (this file)
+- **Install:** [docs/REPLICATE.md](docs/REPLICATE.md)
+- **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **Operations:** [docs/OPERATIONS.md](docs/OPERATIONS.md)
 - **Security:** [docs/SECURITY.md](docs/SECURITY.md)
-- **Install:** [docs/REPLICATE.md](docs/REPLICATE.md)
+- **Hardware:** [docs/HARDWARE.md](docs/HARDWARE.md)
+- **Go-live:** [docs/AUGUST-CHECKLIST.md](docs/AUGUST-CHECKLIST.md)

@@ -1,6 +1,10 @@
 # Replication guide
 
+**[← README](../README.md)** · [Architecture](ARCHITECTURE.md) · [Security](SECURITY.md) · [Operations](OPERATIONS.md) · [Hardware](HARDWARE.md) · [August checklist](AUGUST-CHECKLIST.md)
+
 This document is written for **IT staff, integrators, and sysadmins** deploying EPS Cloud Lab at a school or district. Follow it in order on a fresh Linux host.
+
+Repository: `git clone https://github.com/Daniel-offshoreunk-web/LocalAI.git`
 
 **Time estimate:** 2–4 hours (pilot), 1–2 days (production with TLS and GPU).
 
@@ -61,7 +65,7 @@ sudo chown eps:eps /var/lib/eps
 ### 3.2 Clone and install Python dependencies
 
 ```bash
-sudo -u eps git clone <REPO_URL> /opt/eps-cloud-lab
+sudo -u eps git clone https://github.com/Daniel-offshoreunk-web/LocalAI.git /opt/eps-cloud-lab
 cd /opt/eps-cloud-lab
 sudo -u eps python3 -m venv venv
 sudo -u eps venv/bin/pip install -r requirements.txt
@@ -143,7 +147,7 @@ Edit school CIDRs in `deploy/nftables/eps-gateway.nft.example`, then:
 sudo nft -f deploy/nftables/eps-gateway.nft.example
 ```
 
-Ensure **11434** and **8888** are not reachable from the internet.
+Ensure **8080** (LocalAI) and **8888** (admin) are not reachable from the internet.
 
 ### 3.8 Verify
 
@@ -154,28 +158,32 @@ GATEWAY_URL=https://lab.yourdistrict.edu ./scripts/verify-install.sh
 
 ---
 
-## 4. Install — Docker Compose (pilot)
+## 4. Install — Docker Compose (recommended)
 
-For hosts where you prefer containers for the application layer:
+One command brings up LocalAI, gateway, admin, and builds the Continue-enabled workspace image:
 
 ```bash
-git clone <REPO_URL> eps-cloud-lab && cd eps-cloud-lab
-cp .env.example .env
+git clone https://github.com/Daniel-offshoreunk-web/LocalAI.git && cd LocalAI
 chmod +x scripts/*.sh
-./scripts/generate-secrets.sh >> .env
-# Edit .env: PUBLIC_BASE_URL, SESSION_COOKIE_SECURE=1, ALLOW_INSECURE_DEFAULTS=0
+./scripts/up.sh
+```
 
-# Ollama on host (recommended)
-ollama pull llama3.1:8b
+`up.sh` creates `.env` on first run, frees conflicting ports, and runs `docker compose up -d --build`. For production, edit `.env` first (`PUBLIC_BASE_URL`, `SESSION_COOKIE_SECURE=1`, `ALLOW_INSECURE_DEFAULTS=0`) — see [.env.example](../.env.example).
 
-docker compose -f docker-compose.pilot.yml up -d --build
+Equivalent manual start (after `.env` exists):
+
+```bash
+docker compose up -d --build
 ./scripts/verify-install.sh
 ```
+
+`docker-compose.pilot.yml` is an alias that includes [docker-compose.yml](../docker-compose.yml).
 
 **Admin access:** SSH to the host, then:
 
 ```bash
-curl -H "X-Admin-Secret: $(grep ADMIN_SECRET .env | cut -d= -f2)" http://127.0.0.1:8888/
+# Browser (recommended): http://127.0.0.1:8888/login — paste ADMIN_SECRET from .env
+# Scripts may still use: curl -H "X-Admin-Secret: $(grep ADMIN_SECRET .env | cut -d= -f2)" http://127.0.0.1:8888/
 ```
 
 Or port-forward: `ssh -L 8888:127.0.0.1:8888 admin@lab-host`
@@ -186,7 +194,7 @@ Or port-forward: `ssh -L 8888:127.0.0.1:8888 admin@lab-host`
 
 ### Teacher / admin
 
-1. Open admin panel: `http://127.0.0.1:8888/` on the server (with `X-Admin-Secret` header if configured).
+1. Open `http://127.0.0.1:8888/login` on the server and enter the admin key (16+ characters). One failed attempt permanently blocks that IP until another signed-in admin unblocks it.
 2. Review **Pending approval** queue.
 3. Click **Deploy workspace** for each approved student.
 4. Monitor **Security alerts** for blocked prompts or failed logins.
@@ -196,19 +204,18 @@ Or port-forward: `ssh -L 8888:127.0.0.1:8888 admin@lab-host`
 1. Browse to `https://lab.yourdistrict.edu`
 2. **Create account** → status shows *pending*
 3. After teacher approval → **Open Cloud IDE**
-4. Optional: configure Continue.dev using [config/continue/config.yaml.example](../config/continue/config.yaml.example)
+4. **Open Cloud IDE** — Continue is pre-installed; the student's API key is injected at deploy time.
 
 ---
 
-## 6. Continue.dev setup (per student or baked into image)
+## 6. Continue.dev setup
 
-1. In code-server, install the **Continue** extension.
-2. Copy `config/continue/config.yaml.example` to `~/.continue/config.yaml`
-3. Replace:
-   - `GATEWAY_URL` → your public URL (no trailing slash)
-   - `sk-eps-PASTE_STUDENT_TOKEN_HERE` → token from dashboard **Advanced** section
+**Docker / Compose (default):** The `eps-workspace:latest` image includes Continue and writes `~/.continue/config.yaml` when a teacher approves a student. No manual setup for most users.
 
-For district-wide rollout, build a custom code-server image that includes this file (future: pre-built image in release).
+**Custom image or native deploy:** Copy [config/continue/config.yaml.example](../config/continue/config.yaml.example) to `~/.continue/config.yaml` and set:
+
+- `GATEWAY_URL` → your public lab URL (no trailing slash)
+- `sk-eps-PASTE_STUDENT_TOKEN_HERE` → token from the dashboard **Advanced** section
 
 ---
 
@@ -218,10 +225,10 @@ Same codebase. Change configuration only:
 
 | Setting | Pilot | Production |
 |---------|-------|------------|
-| Compose file | `docker-compose.pilot.yml` | `docker-compose.production.yml` |
+| Compose file | [docker-compose.yml](../docker-compose.yml) | [docker-compose.production.yml](../docker-compose.production.yml) |
 | `DEPLOY_PROFILE` | `pilot` | `production` |
-| Inference | Ollama on localhost | vLLM on GPU node |
-| `OLLAMA_URL` / `INFERENCE_URL` | `http://127.0.0.1:11434` | `http://inference:8000` |
+| Inference | LocalAI CPU (`latest-aio-cpu` in compose) | LocalAI GPU or external OpenAI-compatible node |
+| `INFERENCE_URL` | `http://localai:8080` (compose) | GPU LocalAI service or vLLM URL |
 | Database | SQLite at `/var/lib/eps/` | SQLite OK for single host; Postgres planned for HA |
 | Rate limits | In-memory | Redis (compose production includes Redis stub) |
 | TLS | Caddy/nginx | District load balancer |
@@ -248,7 +255,8 @@ Full list in [.env.example](../.env.example).
 | `ADMIN_SECRET` | Yes (prod) | Protects admin panel |
 | `PUBLIC_BASE_URL` | Yes (HTTPS) | Used for cookies and Continue config |
 | `SESSION_COOKIE_SECURE` | Yes (HTTPS) | Must be `1` behind TLS |
-| `OLLAMA_URL` | Yes | Never expose port 11434 publicly |
+| `INFERENCE_URL` | Yes | LocalAI base URL; never expose port 8080 publicly |
+| `INFERENCE_API_KEY` | Recommended | Server-side LocalAI key; see [SECURITY.md](SECURITY.md) |
 | `ORCHESTRATOR_DB` | No | Default `./orchestrator.db` |
 | `DISABLE_API_REGISTER` | No | Default `1` — force web signup |
 | `ALLOW_INSECURE_DEFAULTS` | No | **Never `1` in production** |
@@ -257,9 +265,9 @@ Full list in [.env.example](../.env.example).
 
 ## 9. Replication checklist for another district
 
-- [ ] Clone repo; verify LICENSE (MIT) and **set the copyright holder** in `LICENSE` with district legal if needed
+- [ ] Clone repo (`git clone https://github.com/Daniel-offshoreunk-web/LocalAI.git`); copy `LICENSE.example` → `LICENSE` and **set the copyright holder** with district legal if needed
 - [ ] Provision hardware per [HARDWARE.md](HARDWARE.md)
-- [ ] Install Docker, Ollama, pull model
+- [ ] Install Docker; run `./scripts/up.sh` or follow §4
 - [ ] Generate secrets; configure `/etc/eps/cloud-lab.env`
 - [ ] Deploy gateway + admin (systemd or compose)
 - [ ] Configure TLS reverse proxy
@@ -277,9 +285,9 @@ Full list in [.env.example](../.env.example).
 |---------|-------|
 | Gateway won't start | `SESSION_SECRET` set? `ALLOW_INSECURE_DEFAULTS=0`? |
 | Admin 403 | Must connect from localhost; use SSH tunnel |
-| Admin 401 | Set `X-Admin-Secret` header |
+| Admin login blocked | Wrong key blocks IP permanently; unblock from dashboard or `admin_ip_blocks` table |
 | IDE 503 | Student approved? `docker ps` shows `eps-ws-<user>`? |
-| AI 503 | Ollama running? Model pulled? |
+| AI 503 | LocalAI healthy? (`docker compose ps`; first boot can take several minutes) |
 | AI 401 | Student deployed? Token in DB? |
 
 Full runbook: [OPERATIONS.md](OPERATIONS.md)
@@ -298,8 +306,10 @@ Align with district policy (e.g. MNCDPA). See [SECURITY.md](SECURITY.md).
 
 ## 12. Getting help
 
-1. [OPERATIONS.md](OPERATIONS.md) — day-2 operations
-2. [SECURITY.md](SECURITY.md) — hardening and pen-test prep
-3. [AUGUST-CHECKLIST.md](AUGUST-CHECKLIST.md) — release roadmap
+1. [README.md](../README.md) — overview and quick start
+2. [ARCHITECTURE.md](ARCHITECTURE.md) — components and request flows
+3. [OPERATIONS.md](OPERATIONS.md) — day-2 operations
+4. [SECURITY.md](SECURITY.md) — hardening and pen-test prep
+5. [AUGUST-CHECKLIST.md](AUGUST-CHECKLIST.md) — release roadmap
 
 Report security issues through your district's responsible disclosure channel.

@@ -1,5 +1,7 @@
 # Operations
 
+**[← README](../README.md)** · [Install](REPLICATE.md) · [Architecture](ARCHITECTURE.md) · [Security](SECURITY.md) · [Hardware](HARDWARE.md) · [August checklist](AUGUST-CHECKLIST.md)
+
 Day-2 runbook for staff maintaining EPS Cloud Lab in production.
 
 ## Service management
@@ -15,10 +17,12 @@ sudo journalctl -u eps-gateway -n 100 -f
 ### Docker Compose
 
 ```bash
-docker compose -f docker-compose.pilot.yml ps
-docker compose -f docker-compose.pilot.yml logs -f gateway
-docker compose -f docker-compose.pilot.yml restart gateway
+docker compose ps
+docker compose logs -f gateway
+docker compose restart gateway
 ```
+
+Production profile: `docker compose -f docker-compose.production.yml …` — see [REPLICATE.md](REPLICATE.md) §7.
 
 ## Health checks
 
@@ -60,7 +64,7 @@ Or with compose:
 
 ```bash
 git pull
-docker compose -f docker-compose.pilot.yml up -d --build
+docker compose up -d --build
 ```
 
 **Always** backup `orchestrator.db` before upgrading.
@@ -133,7 +137,7 @@ sudo usermod -aG docker eps
 
 Rough limits on a 32 GB RAM host:
 
-- Gateway + Ollama: ~8–16 GB (depends on model)
+- Gateway + LocalAI: ~8–16 GB (depends on model)
 - Per student container: 512 MB
 - **Example:** 16 GB for system/AI → ~30 containers theoretical; **recommend ≤15 concurrent** for headroom
 
@@ -145,7 +149,7 @@ See [HARDWARE.md](HARDWARE.md) for GPU tiers.
 |-----------|----------|
 | Gateway (systemd) | `journalctl -u eps-gateway` |
 | Admin (systemd) | `journalctl -u eps-admin` |
-| Ollama | `journalctl -u ollama` |
+| LocalAI (compose) | `docker compose logs localai` |
 | Docker | `docker logs eps-ws-username` |
 
 Application logs do **not** include full AI prompts by default.
@@ -156,3 +160,13 @@ Application logs do **not** include full AI prompts by default.
 2. Export backup of `orchestrator.db`
 3. Optional: `docker rm -f $(docker ps -aq --filter name=eps-ws)`
 4. Archive documentation and survey results per research protocol
+
+## Related documentation
+
+| Document | Description |
+|----------|-------------|
+| [REPLICATE.md](REPLICATE.md) | Install and first-day workflow |
+| [SECURITY.md](SECURITY.md) | Incident response context |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Service layout |
+| [HARDWARE.md](HARDWARE.md) | Capacity planning |
+| [AUGUST-CHECKLIST.md](AUGUST-CHECKLIST.md) | Go-live tracker |

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EPS Admin — Sign in</title>
+  <style>
+    :root { --bg:#0f1419; --card:#1a2332; --text:#e7ecf3; --muted:#8b9cb3; --accent:#3d8bfd; --danger:#f07178; }
+    body { font-family: ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--text); margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:2rem; }
+    .card { background:var(--card); border-radius:12px; padding:2rem; width:100%; max-width:440px; }
+    h1 { margin:0 0 .25rem; font-size:1.35rem; }
+    p.lead { color:var(--muted); margin:0 0 1.5rem; font-size:.9rem; line-height:1.5; }
+    label { display:block; font-size:.8rem; color:var(--muted); margin:.75rem 0 .25rem; }
+    input { width:100%; padding:.65rem .75rem; border-radius:8px; border:1px solid #2a3a52; background:#0f1419; color:var(--text); box-sizing:border-box; font-family: ui-monospace, monospace; }
+    button { margin-top:1.25rem; width:100%; padding:.7rem; border:none; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+    .error { background:#3a1a1a; color:var(--danger); padding:.65rem .75rem; border-radius:8px; font-size:.85rem; margin-bottom:1rem; line-height:1.4; }
+    .warn { background:#3a2f14; color:#f0b429; padding:.65rem .75rem; border-radius:8px; font-size:.85rem; margin-bottom:1rem; line-height:1.4; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Teacher admin</h1>
+    <p class="lead">Approve student lab accounts on this server. Access is limited to localhost — use SSH port forwarding if you are remote.</p>
+    {% if blocked %}
+    <div class="error">This address is permanently blocked after a failed login. Another signed-in administrator must unblock it from the dashboard.</div>
+    {% elif error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    {% if not blocked %}
+    <div class="warn">One wrong attempt permanently blocks this address. Enter the full admin key carefully.</div>
+    <form method="post" action="/login">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label for="admin_key">Admin key ({{ min_key_len }}+ characters)</label>
+      <input id="admin_key" name="admin_key" type="password" required minlength="{{ min_key_len }}" autocomplete="current-password" autofocus>
+      <button type="submit">Open provisioning queue</button>
+    </form>
+    {% endif %}
+  </div>
+</body>
+</html>

@@ -17,11 +17,11 @@ if [[ -f .env ]]; then
   # shellcheck disable=SC1091
   source .env 2>/dev/null || true
 fi
+code=$(curl -s -o /dev/null -w "%{http_code}" "${ADMIN}/login")
+[[ "$code" == "200" ]] && echo "  admin login page OK ($code)" || echo "  admin login returned $code (is admin service running?)"
 if [[ -n "${ADMIN_SECRET:-}" ]]; then
   code=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Admin-Secret: ${ADMIN_SECRET}" "${ADMIN}/")
-  [[ "$code" == "200" ]] && echo "  admin OK ($code)" || echo "  admin returned $code (is admin service running?)"
-else
-  echo "  skip admin (set ADMIN_SECRET in .env)"
+  [[ "$code" == "200" ]] && echo "  admin API header auth OK ($code)"
 fi
 
 echo "==> LocalAI inference"

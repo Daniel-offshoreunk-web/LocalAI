@@ -1,5 +1,7 @@
 # Full EPS Cloud Lab stack — one command:
 #   ./scripts/up.sh
+# Stop:
+#   ./scripts/down.sh
 # or (after .env exists):
 #   docker compose up -d --build
 #
@@ -40,7 +42,8 @@ services:
     env_file: .env
     volumes:
       - eps-data:/var/lib/eps
-      - /var/run/docker.sock:/var/run/docker.sock
+      # :z relabels the socket for SELinux (Fedora/RHEL) so in-container docker CLI works.
+      - /var/run/docker.sock:/var/run/docker.sock:z
     environment:
       ORCHESTRATOR_DB: /var/lib/eps/orchestrator.db
       INFERENCE_URL: http://localai:8080
@@ -56,6 +59,8 @@ services:
         condition: service_started
     group_add:
       - "${DOCKER_GID:-0}"
+    security_opt:
+      - label=disable
     networks:
       - gateway_net
       - inference_internal
@@ -69,9 +74,11 @@ services:
     env_file: .env
     group_add:
       - "${DOCKER_GID:-0}"
+    security_opt:
+      - label=disable
     volumes:
       - eps-data:/var/lib/eps
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:z
     environment:
       ORCHESTRATOR_DB: /var/lib/eps/orchestrator.db
       ADMIN_HOST: 0.0.0.0

@@ -1,5 +1,7 @@
 # Security
 
+**[← README](../README.md)** · [Install](REPLICATE.md) · [Architecture](ARCHITECTURE.md) · [Operations](OPERATIONS.md) · [Hardware](HARDWARE.md) · [August checklist](AUGUST-CHECKLIST.md)
+
 ## Threat model
 
 | Threat | Mitigation |
@@ -8,7 +10,7 @@
 | Stolen API keys | Per-user tokens in DB; revocable by re-deploy; rate limits |
 | Prompt injection / malware gen | Regex + AST (`prompt_guard.py`), then optional ≥1B guardian model; events logged |
 | Container escape | cap-drop, no-new-privileges, resource limits, isolated network |
-| Admin panel exposure | Binds `127.0.0.1`; requires `X-Admin-Secret` in production |
+| Admin panel exposure | Binds `127.0.0.1`; browser login at `/login` with 16+ char key; one failed attempt per IP blocks permanently |
 | Session hijacking | HttpOnly cookies, CSRF on forms, `SESSION_SECRET` required |
 | Path traversal to other workspaces | Session-bound username; proxy path validation |
 | Direct LocalAI access | Must not expose port 8080; gateway holds `INFERENCE_API_KEY` |
@@ -32,7 +34,7 @@ Before exposing to students on the school network:
 
 1. **Students:** Session cookie after password login (PBKDF2-SHA256, 310k rounds)
 2. **API clients (Continue):** Bearer `sk-eps-…` token looked up in SQLite
-3. **Admin:** Localhost IP check + optional `X-Admin-Secret` header
+3. **Admin:** Localhost IP check + session sign-in (or `X-Admin-Secret` header for automation)
 
 ## code-server `--auth none`
 
@@ -83,7 +85,7 @@ Expected findings to address before internet exposure:
 1. **Docker socket on gateway host** — compromise of gateway = root on host. Mitigate with dedicated VM, AppArmor, minimal user permissions.
 2. **In-memory rate limits** — bypass with distributed IPs. Mitigate with edge rate limiting.
 3. **No geo-fence** — add nftables school CIDR rules.
-4. **Guardian is rule-based only** — add heuristic + small classifier model (August roadmap).
+4. **Guardian LLM** — tune `GUARDIAN_MODEL` and set `GUARDIAN_FAIL_OPEN=0` when the small model is reliably loaded.
 
 Report findings through district responsible disclosure.
 
@@ -96,3 +98,12 @@ Report findings through district responsible disclosure.
 5. Restore `orchestrator.db` from backup if database tampered
 
 See [OPERATIONS.md](OPERATIONS.md) for backup procedures.
+
+## Related documentation
+
+| Document | Description |
+|----------|-------------|
+| [REPLICATE.md](REPLICATE.md) | Install hardening steps (TLS, firewall, secrets) |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Auth layers and request flows |
+| [OPERATIONS.md](OPERATIONS.md) | Incident response and backups |
+| [AUGUST-CHECKLIST.md](AUGUST-CHECKLIST.md) | Pre-release security sign-off |

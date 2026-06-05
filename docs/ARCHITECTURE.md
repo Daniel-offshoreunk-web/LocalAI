@@ -1,5 +1,7 @@
 # Architecture
 
+**[← README](../README.md)** · [Install](REPLICATE.md) · [Security](SECURITY.md) · [Operations](OPERATIONS.md) · [Hardware](HARDWARE.md) · [August checklist](AUGUST-CHECKLIST.md)
+
 ## System context
 
 EPS Cloud Lab runs on **district-owned hardware**. Students use a browser; all compute stays on the school network. The design prevents anonymous compute abuse by requiring **teacher approval** before any workspace container is created.
@@ -118,8 +120,8 @@ POST /v1/chat/completions → Bearer sk-eps-… → DB lookup → guard → Loca
 
 | Profile | Compose file | Inference | Database |
 |---------|--------------|-----------|----------|
-| `pilot` | `docker-compose.pilot.yml` | LocalAI CPU (compose service) | SQLite |
-| `production` | `docker-compose.production.yml` | LocalAI GPU (+ Redis stub) | SQLite (Postgres planned) |
+| `pilot` | [docker-compose.yml](../docker-compose.yml) | LocalAI CPU (compose service) | SQLite |
+| `production` | [docker-compose.production.yml](../docker-compose.production.yml) | LocalAI GPU (+ Redis stub) | SQLite (Postgres planned) |
 
 ## File layout
 
@@ -140,13 +142,27 @@ LocalAI/
 ├── deploy/nftables/        # Firewall example
 ├── config/continue/        # Continue.dev template
 ├── docs/                   # This documentation
+├── docker-compose.yml      # Full stack (pilot default)
 ├── docker-compose.pilot.yml
-└── Dockerfile
+├── docker-compose.production.yml
+├── Dockerfile
+├── Dockerfile.workspace    # code-server + Continue.dev
+└── LICENSE.example
 ```
 
 ## Extension points
 
-- **Custom code-server image:** set `WORKSPACE_IMAGE` to include Continue pre-configured
+- **Custom workspace image:** set `WORKSPACE_IMAGE` (default `eps-workspace:latest` with Continue)
 - **Other backends:** point `INFERENCE_URL` to any OpenAI-compatible `/v1` peer (vLLM, remote LocalAI node)
 - **SSO:** add OIDC middleware in front of gateway (production roadmap)
-- **Guardian AI:** extend `prompt_guard.py` + `security_events` (August roadmap)
+- **Guardian AI:** `guardian_llm.py` + `prompt_guard.py` + `security_events` — see [SECURITY.md](SECURITY.md)
+
+## Related documentation
+
+| Document | Description |
+|----------|-------------|
+| [REPLICATE.md](REPLICATE.md) | Install and first-day workflow |
+| [SECURITY.md](SECURITY.md) | Threat model and production checklist |
+| [OPERATIONS.md](OPERATIONS.md) | Backups, updates, troubleshooting |
+| [HARDWARE.md](HARDWARE.md) | Sizing tiers |
+| [AUGUST-CHECKLIST.md](AUGUST-CHECKLIST.md) | Go-live tracker |

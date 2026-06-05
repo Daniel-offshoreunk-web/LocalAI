@@ -29,8 +29,16 @@
   </style>
 </head>
 <body>
-  <h1>Provisioning Queue</h1>
-  <p class="sub">Localhost-only · No container starts until you approve below.</p>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+    <div>
+      <h1>Provisioning Queue</h1>
+      <p class="sub" style="margin-bottom:0;">Localhost-only · No container starts until you approve below.</p>
+    </div>
+    <form method="post" action="/logout" style="margin:0;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="btn-stop">Sign out</button>
+    </form>
+  </div>
 
   <section>
     <h2>Pending approval ({{ pending|length }})</h2>
@@ -47,9 +55,11 @@
           <td>{{ row.created_at }}</td>
           <td class="actions">
             <form method="post" action="/approve/{{ row.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
               <button type="submit" class="btn-approve">Deploy workspace</button>
             </form>
             <form method="post" action="/deny/{{ row.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
               <button type="submit" class="btn-deny">Deny</button>
             </form>
           </td>
@@ -79,6 +89,33 @@
     </table>
     {% else %}
     <p class="empty">None.</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2>Blocked admin addresses ({{ blocked_ips|length }})</h2>
+    {% if blocked_ips %}
+    <table>
+      <thead><tr><th>IP</th><th>Blocked at</th><th>Reason</th><th></th></tr></thead>
+      <tbody>
+        {% for row in blocked_ips %}
+        <tr>
+          <td><code>{{ row.ip }}</code></td>
+          <td>{{ row.blocked_at }}</td>
+          <td><small>{{ row.reason or '—' }}</small></td>
+          <td>
+            <form method="post" action="/unblock-ip">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <input type="hidden" name="ip" value="{{ row.ip }}">
+              <button type="submit" class="btn-approve">Unblock</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No blocked addresses.</p>
     {% endif %}
   </section>
 
@@ -123,6 +160,7 @@
           <td>
             {% if row.status == 'deployed' %}
             <form method="post" action="/stop/{{ row.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
               <button type="submit" class="btn-stop">Stop</button>
             </form>
             {% endif %}

@@ -11,7 +11,8 @@ if [[ ! -f .env ]]; then
   cp .env.example .env
   chmod 600 .env
   ./scripts/generate-secrets.sh >> .env
-  cat >> .env <<'EOF'
+  _docker_gid="$(stat -c '%g' /var/run/docker.sock 2>/dev/null || getent group docker | cut -d: -f3 || echo 0)"
+  cat >> .env <<EOF
 ALLOW_INSECURE_DEFAULTS=1
 PUBLIC_BASE_URL=http://127.0.0.1:8000
 SESSION_COOKIE_SECURE=0
@@ -19,7 +20,7 @@ WORKSPACE_IMAGE=eps-workspace:latest
 WORKSPACE_GATEWAY_URL=http://gateway:8000
 INFERENCE_URL=http://localai:8080
 GUARDIAN_ENABLED=1
-DOCKER_GID=${DOCKER_GID:-$(stat -c '%g' /var/run/docker.sock 2>/dev/null || echo 0)}
+DOCKER_GID=${_docker_gid}
 EOF
   echo "==> Wrote .env (dev defaults). Edit before production."
 fi
@@ -29,6 +30,9 @@ source .env 2>/dev/null || true
 export GATEWAY_PORT="${GATEWAY_PORT:-8000}"
 export ADMIN_PORT="${ADMIN_PORT:-8888}"
 export DOCKER_GID="${DOCKER_GID:-$(stat -c '%g' /var/run/docker.sock 2>/dev/null || getent group docker | cut -d: -f3 || echo 0)}"
+if [[ -f .env ]] && ! grep -q '^DOCKER_GID=' .env 2>/dev/null; then
+  echo "DOCKER_GID=${DOCKER_GID}" >> .env
+fi
 
 "${ROOT}/scripts/free-ports.sh"
 
@@ -39,6 +43,7 @@ echo ""
 echo "Student portal:  http://127.0.0.1:${GATEWAY_PORT}"
 echo "Admin panel:     http://127.0.0.1:${ADMIN_PORT}"
 echo "Verify:          ./scripts/verify-install.sh"
+echo "Stop stack:      ./scripts/down.sh"
 echo ""
 echo "Note: LocalAI may take several minutes on first boot while models preload."
 
@@ -51,7 +56,7 @@ if [[ "${FIRST_BOOT}" -eq 1 ]]; then
   echo "  SESSION_SECRET:  ${SESSION_SECRET:-<unset>}"
   echo "  INFERENCE_API_KEY (LocalAI upstream): ${INFERENCE_API_KEY:-<unset>}"
   echo ""
-  echo "  Example admin access:"
-  echo "    curl -H \"X-Admin-Secret: ${ADMIN_SECRET}\" http://127.0.0.1:${ADMIN_PORT}/"
+  echo "  Admin sign-in:  http://127.0.0.1:${ADMIN_PORT}/login"
+  echo "  (paste ADMIN_SECRET in the browser form; one wrong try blocks your IP)"
   echo "========================================================================"
 fi

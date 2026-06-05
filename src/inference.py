@@ -46,7 +46,8 @@ def build_upstream_headers(client_headers: dict[str, str] | None = None) -> dict
 
 
 async def _resolve_token_row(token: str) -> dict:
-    row = await get_db().get_by_api_token(token)
+    db = await get_db()
+    row = await db.get_by_api_token(token)
     if not row:
         raise HTTPException(status_code=401, detail="Invalid API token.")
     if row["status"] not in {"deployed", "approved"}:

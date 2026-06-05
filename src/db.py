@@ -30,6 +30,11 @@ CREATE TABLE IF NOT EXISTS security_events (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_security_events_user ON security_events(username);
+CREATE TABLE IF NOT EXISTS admin_ip_blocks (
+    ip TEXT PRIMARY KEY,
+    reason TEXT,
+    blocked_at TEXT NOT NULL
+);
 """
 
 _MIGRATIONS = (
@@ -213,6 +218,47 @@ class Database:
                 (username, event_type[:64], (detail or "")[:500], _now()),
             )
             await db.commit()
+
+    async def is_admin_ip_blocked(self, ip: str) -> bool:
+        async with self.connect() as db:
+            cursor = await db.execute(
+                "SELECT 1 FROM admin_ip_blocks WHERE ip = ? LIMIT 1", (ip,)
+            )
+            return await cursor.fetchone() is not None
+
+    async def block_admin_ip(self, ip: str, reason: str | None = None) -> None:
+        async with self.connect() as db:
+            await db.execute(
+                """
+                INSERT INTO admin_ip_blocks (ip, reason, blocked_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(ip) DO UPDATE SET
+                    reason = excluded.reason,
+                    blocked_at = excluded.blocked_at
+                """,
+                (ip, (reason or "")[:500], _now()),
+            )
+            await db.commit()
+
+    async def unblock_admin_ip(self, ip: str) -> bool:
+        async with self.connect() as db:
+            cursor = await db.execute(
+                "DELETE FROM admin_ip_blocks WHERE ip = ?", (ip,)
+            )
+            await db.commit()
+            return cursor.rowcount > 0
+
+    async def list_blocked_admin_ips(self) -> list[dict[str, Any]]:
+        async with self.connect() as db:
+            cursor = await db.execute(
+                """
+                SELECT ip, reason, blocked_at
+                FROM admin_ip_blocks
+                ORDER BY blocked_at DESC
+                """
+            )
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
 
     async def list_security_events(self, limit: int = 50) -> list[dict[str, Any]]:
         async with self.connect() as db:

@@ -8,7 +8,8 @@ from .prompt_guard import extract_chat_text, scan_chat_payload, scan_text
 
 
 async def _record_block(username: str, detail: str) -> None:
-    await get_db().record_security_event(username, "prompt_blocked", detail[:240])
+    db = await get_db()
+    await db.record_security_event(username, "prompt_blocked", detail[:240])
 
 
 async def enforce_text_safety(text: str, *, username: str) -> None:
