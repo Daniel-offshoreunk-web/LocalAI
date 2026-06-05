@@ -1,6 +1,6 @@
 # Operations
 
-**[← README](../README.md)** · [Install](REPLICATE.md) · [Architecture](ARCHITECTURE.md) · [Security](SECURITY.md) · [Hardware](HARDWARE.md) · [August checklist](AUGUST-CHECKLIST.md)
+**[← README](/README.md)** · [Install](/docs/REPLICATE.md) · [Architecture](/docs/ARCHITECTURE.md) · [Security](/docs/SECURITY.md) · [Hardware](/docs/HARDWARE.md) · [August checklist](/docs/AUGUST-CHECKLIST.md)
 
 Day-2 runbook for staff maintaining EPS Cloud Lab in production.
 
@@ -22,7 +22,7 @@ docker compose logs -f gateway
 docker compose restart gateway
 ```
 
-Production profile: `docker compose -f docker-compose.production.yml …` — see [REPLICATE.md](REPLICATE.md) §7.
+Production profile: `docker compose -f docker-compose.production.yml …` — see [REPLICATE.md](/docs/REPLICATE.md) §7.
 
 ## Health checks
 
@@ -141,7 +141,7 @@ Rough limits on a 32 GB RAM host:
 - Per student container: 512 MB
 - **Example:** 16 GB for system/AI → ~30 containers theoretical; **recommend ≤15 concurrent** for headroom
 
-See [HARDWARE.md](HARDWARE.md) for GPU tiers.
+See [HARDWARE.md](/docs/HARDWARE.md) for GPU tiers.
 
 ## Logs
 
@@ -165,8 +165,8 @@ Application logs do **not** include full AI prompts by default.
 
 | Document | Description |
 |----------|-------------|
-| [REPLICATE.md](REPLICATE.md) | Install and first-day workflow |
-| [SECURITY.md](SECURITY.md) | Incident response context |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Service layout |
-| [HARDWARE.md](HARDWARE.md) | Capacity planning |
-| [AUGUST-CHECKLIST.md](AUGUST-CHECKLIST.md) | Go-live tracker |
+| [REPLICATE.md](/docs/REPLICATE.md) | Install and first-day workflow |
+| [SECURITY.md](/docs/SECURITY.md) | Incident response context |
+| [ARCHITECTURE.md](/docs/ARCHITECTURE.md) | Service layout |
+| [HARDWARE.md](/docs/HARDWARE.md) | Capacity planning |
+| [AUGUST-CHECKLIST.md](/docs/AUGUST-CHECKLIST.md) | Go-live tracker |

@@ -54,7 +54,7 @@ It supports a **research pilot** (pre/post surveys on CS confidence and engageme
 |------|------|
 | **Students** | Sign up, wait for approval, open cloud IDE, use AI help—no API or terminal knowledge required |
 | **Teachers / sponsors** | Approve or deny lab access, review security flags, stop workspaces |
-| **District IT** | Install on Linux, TLS, firewall, backups—follow [docs/REPLICATE.md](docs/REPLICATE.md) |
+| **District IT** | Install on Linux, TLS, firewall, backups—follow [docs/REPLICATE.md](/docs/REPLICATE.md) |
 | **Integrators / developers** | OpenAI-compatible gateway for Continue, Tabby, or custom clients via per-student `sk-eps-…` tokens |
 
 ---
@@ -234,7 +234,7 @@ Blocks common abuse patterns before they reach the model:
 | Direct inference access | LocalAI port not public; gateway holds upstream key |
 | Path traversal to other workspaces | `validate_proxy_path()` rejects `..` and null bytes |
 
-**Production checklist:** [docs/SECURITY.md](docs/SECURITY.md)
+**Production checklist:** [docs/SECURITY.md](/docs/SECURITY.md)
 
 **Do not** publish code-server container ports on the host LAN. Students reach the IDE only through `/lab` after login.
 
@@ -251,7 +251,7 @@ Blocks common abuse patterns before they reach the model:
 | Full AI prompts and responses | **No** | Aligns with MNCDPA-style local processing story |
 | Research surveys | Outside app | Pre/post forms, anonymized |
 
-Districts should complete a privacy review before go-live. See [docs/SECURITY.md](docs/SECURITY.md) § Data retention.
+Districts should complete a privacy review before go-live. See [docs/SECURITY.md](/docs/SECURITY.md) § Data retention.
 
 ---
 
@@ -271,7 +271,7 @@ Districts should complete a privacy review before go-live. See [docs/SECURITY.md
 | Container runtime | Docker Engine |
 | Reverse proxy (production) | Caddy / nginx (documented, not bundled) |
 
-**Python dependencies:** [requirements.txt](requirements.txt)
+**Python dependencies:** [requirements.txt](/requirements.txt)
 
 ---
 
@@ -342,14 +342,14 @@ Set `DEPLOY_PROFILE=pilot` or `production` in `.env`.
 | | **Pilot** | **Production** |
 |---|-----------|----------------|
 | **Use case** | Research study, 5–10 students | Classroom / district scale |
-| **Compose file** | [docker-compose.yml](docker-compose.yml) | [docker-compose.production.yml](docker-compose.production.yml) |
+| **Compose file** | [docker-compose.yml](/docker-compose.yml) | [docker-compose.production.yml](/docker-compose.production.yml) |
 | **Start command** | `./scripts/up.sh` | Compose production file + GPU host |
 | **Inference** | LocalAI CPU image in compose | LocalAI GPU (+ Redis stub) |
 | **Database** | SQLite at `/var/lib/eps/` | SQLite today; Postgres planned for HA |
 | **Rate limits** | In-memory | Redis when multi-instance |
 | **Switch effort** | Change `.env` + compose file | Same codebase, no student URL change |
 
-Details: [docs/REPLICATE.md](docs/REPLICATE.md) §7
+Details: [docs/REPLICATE.md](/docs/REPLICATE.md) §7
 
 ---
 
@@ -399,7 +399,7 @@ Set `WORKSPACE_IMAGE=eps-workspace:latest` and `WORKSPACE_GATEWAY_URL=http://hos
 
 ## Production deployment
 
-**IT and integrators should follow [docs/REPLICATE.md](docs/REPLICATE.md)** — native systemd install or Docker Compose, TLS, firewall, secrets, and verification.
+**IT and integrators should follow [docs/REPLICATE.md](/docs/REPLICATE.md)** — native systemd install or Docker Compose, TLS, firewall, secrets, and verification.
 
 Minimum production settings:
 
@@ -474,7 +474,7 @@ Generate secrets: `./scripts/generate-secrets.sh`
 
 **Docker / Compose:** Continue is pre-installed in `eps-workspace:latest`. When a teacher approves a student, the orchestrator starts a workspace container with that student's `sk-eps-…` token and gateway URL already written to `~/.continue/config.yaml`.
 
-**Manual / custom image:** Copy [config/continue/config.yaml.example](config/continue/config.yaml.example) to `~/.continue/config.yaml`, set `GATEWAY_URL` and the student's API key from the dashboard.
+**Manual / custom image:** Copy [config/continue/config.yaml.example](/config/continue/config.yaml.example) to `~/.continue/config.yaml`, set `GATEWAY_URL` and the student's API key from the dashboard.
 
 Extensions talk to **`https://lab.yourdistrict.edu/v1`**, not to LocalAI directly. The gateway enforces per-student auth and prompt guard.
 
@@ -488,7 +488,7 @@ Extensions talk to **`https://lab.yourdistrict.edu/v1`**, not to LocalAI directl
 | **B — Classroom** | 25–35 | 64+ GB RAM, RTX 4090 / L40S 24–48 GB |
 | **C — District** | 100+ | HA gateway, GPU inference nodes, workspace host |
 
-Full tables: [docs/HARDWARE.md](docs/HARDWARE.md)
+Full tables: [docs/HARDWARE.md](/docs/HARDWARE.md)
 
 ---
 
@@ -496,7 +496,7 @@ Full tables: [docs/HARDWARE.md](docs/HARDWARE.md)
 
 1. Clone this repository: `git clone https://github.com/Daniel-offshoreunk-web/LocalAI.git`
 2. Copy `LICENSE.example` to `LICENSE` and set the **copyright holder** with your legal/IP office.
-3. Follow **[docs/REPLICATE.md](docs/REPLICATE.md)** on a staging host.
+3. Follow **[docs/REPLICATE.md](/docs/REPLICATE.md)** on a staging host.
 4. Run `./scripts/verify-install.sh`.
 5. Train teachers on the admin approval workflow.
 6. Point students at a single HTTPS URL.
@@ -520,7 +520,7 @@ No vendor account required. Software stack is MIT-licensed (once copyright is as
 | School SSO (Google / Microsoft) | Planned |
 | Postgres for HA | Planned |
 
-Tracker: [docs/AUGUST-CHECKLIST.md](docs/AUGUST-CHECKLIST.md)
+Tracker: [docs/AUGUST-CHECKLIST.md](/docs/AUGUST-CHECKLIST.md)
 
 ---
 
@@ -528,19 +528,19 @@ Tracker: [docs/AUGUST-CHECKLIST.md](docs/AUGUST-CHECKLIST.md)
 
 | Document | Contents |
 |----------|----------|
-| [docs/REPLICATE.md](docs/REPLICATE.md) | Step-by-step install for professionals |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components and request flows |
-| [docs/SECURITY.md](docs/SECURITY.md) | Threat model and production checklist |
-| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Backups, updates, troubleshooting |
-| [docs/HARDWARE.md](docs/HARDWARE.md) | Hardware tiers and models |
-| [docs/AUGUST-CHECKLIST.md](docs/AUGUST-CHECKLIST.md) | Go-live checklist |
-| [LICENSE.example](LICENSE.example) | MIT license template |
+| [docs/REPLICATE.md](/docs/REPLICATE.md) | Step-by-step install for professionals |
+| [docs/ARCHITECTURE.md](/docs/ARCHITECTURE.md) | Components and request flows |
+| [docs/SECURITY.md](/docs/SECURITY.md) | Threat model and production checklist |
+| [docs/OPERATIONS.md](/docs/OPERATIONS.md) | Backups, updates, troubleshooting |
+| [docs/HARDWARE.md](/docs/HARDWARE.md) | Hardware tiers and models |
+| [docs/AUGUST-CHECKLIST.md](/docs/AUGUST-CHECKLIST.md) | Go-live checklist |
+| [LICENSE.example](/LICENSE.example) | MIT license template |
 
 ---
 
 ## License
 
-MIT — see [LICENSE.example](LICENSE.example).
+MIT — see [LICENSE.example](/LICENSE.example).
 
 **Before distribution:** copy `LICENSE.example` to `LICENSE`, replace the placeholder copyright line with the actual legal rights holder (you, or your district only after their IP/legal office approves). Do not attribute copyright to an organization without written authorization.
 
@@ -548,10 +548,10 @@ MIT — see [LICENSE.example](LICENSE.example).
 
 ## Support
 
-- **Overview:** [README.md](README.md) (this file)
-- **Install:** [docs/REPLICATE.md](docs/REPLICATE.md)
-- **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- **Operations:** [docs/OPERATIONS.md](docs/OPERATIONS.md)
-- **Security:** [docs/SECURITY.md](docs/SECURITY.md)
-- **Hardware:** [docs/HARDWARE.md](docs/HARDWARE.md)
-- **Go-live:** [docs/AUGUST-CHECKLIST.md](docs/AUGUST-CHECKLIST.md)
+- **Overview:** [README.md](/README.md) (this file)
+- **Install:** [docs/REPLICATE.md](/docs/REPLICATE.md)
+- **Architecture:** [docs/ARCHITECTURE.md](/docs/ARCHITECTURE.md)
+- **Operations:** [docs/OPERATIONS.md](/docs/OPERATIONS.md)
+- **Security:** [docs/SECURITY.md](/docs/SECURITY.md)
+- **Hardware:** [docs/HARDWARE.md](/docs/HARDWARE.md)
+- **Go-live:** [docs/AUGUST-CHECKLIST.md](/docs/AUGUST-CHECKLIST.md)

@@ -1,6 +1,6 @@
 # Hardware sizing
 
-**[← README](../README.md)** · [Install](REPLICATE.md) · [Architecture](ARCHITECTURE.md) · [Security](SECURITY.md) · [Operations](OPERATIONS.md) · [August checklist](AUGUST-CHECKLIST.md)
+**[← README](/README.md)** · [Install](/docs/REPLICATE.md) · [Architecture](/docs/ARCHITECTURE.md) · [Security](/docs/SECURITY.md) · [Operations](/docs/OPERATIONS.md) · [August checklist](/docs/AUGUST-CHECKLIST.md)
 
 Reference hardware for EPS Cloud Lab deployments. Software is identical across tiers; capacity and model choice differ.
 
@@ -16,7 +16,7 @@ Reference hardware for EPS Cloud Lab deployments. Software is identical across t
 | OS | Fedora 40+ (reference) |
 
 **Concurrent students:** 5–10  
-**Inference:** LocalAI CPU image in [docker-compose.yml](../docker-compose.yml); model via `DEFAULT_CHAT_MODEL`  
+**Inference:** LocalAI CPU image in [docker-compose.yml](/docker-compose.yml); model via `DEFAULT_CHAT_MODEL`  
 **Cost band:** Existing lab hardware ($0) to ~$2,000 with GPU
 
 ## Tier B — Single classroom (25–35 students)
@@ -55,7 +55,7 @@ Reference hardware for EPS Cloud Lab deployments. Software is identical across t
 | DeepSeek R1 Distill 32B | 20–24 GB | Deep debugging (Tier B+) |
 | Llama 3.1 70B | 40+ GB | Tier C only |
 
-Set via `DEFAULT_CHAT_MODEL` and `GUARDIAN_MODEL` in [.env.example](../.env.example). Install models through the LocalAI Web UI or gallery after `./scripts/up.sh`.
+Set via `DEFAULT_CHAT_MODEL` and `GUARDIAN_MODEL` in [.env.example](/.env.example). Install models through the LocalAI Web UI or gallery after `./scripts/up.sh`.
 
 ## LocalAI (pilot compose)
 
@@ -73,12 +73,12 @@ curl -sf http://127.0.0.1:8080/readyz   # when LocalAI port is published for deb
 - Latency exceeds ~3 s for first token
 - RAM pressure causes OOM (`dmesg | grep -i oom`)
 
-Switch to [docker-compose.production.yml](../docker-compose.production.yml) per [REPLICATE.md](REPLICATE.md) §7.
+Switch to [docker-compose.production.yml](/docker-compose.production.yml) per [REPLICATE.md](/docs/REPLICATE.md) §7.
 
 ## Related documentation
 
 | Document | Description |
 |----------|-------------|
-| [REPLICATE.md](REPLICATE.md) | Install and environment variables |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Deployment profiles |
-| [OPERATIONS.md](OPERATIONS.md) | Capacity troubleshooting |
+| [REPLICATE.md](/docs/REPLICATE.md) | Install and environment variables |
+| [ARCHITECTURE.md](/docs/ARCHITECTURE.md) | Deployment profiles |
+| [OPERATIONS.md](/docs/OPERATIONS.md) | Capacity troubleshooting |

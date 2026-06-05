@@ -1,6 +1,6 @@
 # Security
 
-**[← README](../README.md)** · [Install](REPLICATE.md) · [Architecture](ARCHITECTURE.md) · [Operations](OPERATIONS.md) · [Hardware](HARDWARE.md) · [August checklist](AUGUST-CHECKLIST.md)
+**[← README](/README.md)** · [Install](/docs/REPLICATE.md) · [Architecture](/docs/ARCHITECTURE.md) · [Operations](/docs/OPERATIONS.md) · [Hardware](/docs/HARDWARE.md) · [August checklist](/docs/AUGUST-CHECKLIST.md)
 
 ## Threat model
 
@@ -97,13 +97,13 @@ Report findings through district responsible disclosure.
 4. Rotate `ADMIN_SECRET` and affected student API tokens (re-approve user to regenerate)
 5. Restore `orchestrator.db` from backup if database tampered
 
-See [OPERATIONS.md](OPERATIONS.md) for backup procedures.
+See [OPERATIONS.md](/docs/OPERATIONS.md) for backup procedures.
 
 ## Related documentation
 
 | Document | Description |
 |----------|-------------|
-| [REPLICATE.md](REPLICATE.md) | Install hardening steps (TLS, firewall, secrets) |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Auth layers and request flows |
-| [OPERATIONS.md](OPERATIONS.md) | Incident response and backups |
-| [AUGUST-CHECKLIST.md](AUGUST-CHECKLIST.md) | Pre-release security sign-off |
+| [REPLICATE.md](/docs/REPLICATE.md) | Install hardening steps (TLS, firewall, secrets) |
+| [ARCHITECTURE.md](/docs/ARCHITECTURE.md) | Auth layers and request flows |
+| [OPERATIONS.md](/docs/OPERATIONS.md) | Incident response and backups |
+| [AUGUST-CHECKLIST.md](/docs/AUGUST-CHECKLIST.md) | Pre-release security sign-off |

@@ -1,6 +1,6 @@
 # Replication guide
 
-**[← README](../README.md)** · [Architecture](ARCHITECTURE.md) · [Security](SECURITY.md) · [Operations](OPERATIONS.md) · [Hardware](HARDWARE.md) · [August checklist](AUGUST-CHECKLIST.md)
+**[← README](/README.md)** · [Architecture](/docs/ARCHITECTURE.md) · [Security](/docs/SECURITY.md) · [Operations](/docs/OPERATIONS.md) · [Hardware](/docs/HARDWARE.md) · [August checklist](/docs/AUGUST-CHECKLIST.md)
 
 This document is written for **IT staff, integrators, and sysadmins** deploying EPS Cloud Lab at a school or district. Follow it in order on a fresh Linux host.
 
@@ -42,7 +42,7 @@ EPS Cloud Lab provides:
 
 ### Hardware (minimum pilot)
 
-See [HARDWARE.md](HARDWARE.md). Minimum: 8 CPU threads, 32 GB RAM, 500 GB disk. GPU strongly recommended for acceptable AI latency.
+See [HARDWARE.md](/docs/HARDWARE.md). Minimum: 8 CPU threads, 32 GB RAM, 500 GB disk. GPU strongly recommended for acceptable AI latency.
 
 ### Network
 
@@ -168,7 +168,7 @@ chmod +x scripts/*.sh
 ./scripts/up.sh
 ```
 
-`up.sh` creates `.env` on first run, frees conflicting ports, and runs `docker compose up -d --build`. For production, edit `.env` first (`PUBLIC_BASE_URL`, `SESSION_COOKIE_SECURE=1`, `ALLOW_INSECURE_DEFAULTS=0`) — see [.env.example](../.env.example).
+`up.sh` creates `.env` on first run, frees conflicting ports, and runs `docker compose up -d --build`. For production, edit `.env` first (`PUBLIC_BASE_URL`, `SESSION_COOKIE_SECURE=1`, `ALLOW_INSECURE_DEFAULTS=0`) — see [.env.example](/.env.example).
 
 Equivalent manual start (after `.env` exists):
 
@@ -177,7 +177,7 @@ docker compose up -d --build
 ./scripts/verify-install.sh
 ```
 
-`docker-compose.pilot.yml` is an alias that includes [docker-compose.yml](../docker-compose.yml).
+`docker-compose.pilot.yml` is an alias that includes [docker-compose.yml](/docker-compose.yml).
 
 **Admin access:** SSH to the host, then:
 
@@ -212,7 +212,7 @@ Or port-forward: `ssh -L 8888:127.0.0.1:8888 admin@lab-host`
 
 **Docker / Compose (default):** The `eps-workspace:latest` image includes Continue and writes `~/.continue/config.yaml` when a teacher approves a student. No manual setup for most users.
 
-**Custom image or native deploy:** Copy [config/continue/config.yaml.example](../config/continue/config.yaml.example) to `~/.continue/config.yaml` and set:
+**Custom image or native deploy:** Copy [config/continue/config.yaml.example](/config/continue/config.yaml.example) to `~/.continue/config.yaml` and set:
 
 - `GATEWAY_URL` → your public lab URL (no trailing slash)
 - `sk-eps-PASTE_STUDENT_TOKEN_HERE` → token from the dashboard **Advanced** section
@@ -225,7 +225,7 @@ Same codebase. Change configuration only:
 
 | Setting | Pilot | Production |
 |---------|-------|------------|
-| Compose file | [docker-compose.yml](../docker-compose.yml) | [docker-compose.production.yml](../docker-compose.production.yml) |
+| Compose file | [docker-compose.yml](/docker-compose.yml) | [docker-compose.production.yml](/docker-compose.production.yml) |
 | `DEPLOY_PROFILE` | `pilot` | `production` |
 | Inference | LocalAI CPU (`latest-aio-cpu` in compose) | LocalAI GPU or external OpenAI-compatible node |
 | `INFERENCE_URL` | `http://localai:8080` (compose) | GPU LocalAI service or vLLM URL |
@@ -247,7 +247,7 @@ No student URL changes required.
 
 ## 8. Environment reference
 
-Full list in [.env.example](../.env.example).
+Full list in [.env.example](/.env.example).
 
 | Variable | Required | Notes |
 |----------|----------|-------|
@@ -256,7 +256,7 @@ Full list in [.env.example](../.env.example).
 | `PUBLIC_BASE_URL` | Yes (HTTPS) | Used for cookies and Continue config |
 | `SESSION_COOKIE_SECURE` | Yes (HTTPS) | Must be `1` behind TLS |
 | `INFERENCE_URL` | Yes | LocalAI base URL; never expose port 8080 publicly |
-| `INFERENCE_API_KEY` | Recommended | Server-side LocalAI key; see [SECURITY.md](SECURITY.md) |
+| `INFERENCE_API_KEY` | Recommended | Server-side LocalAI key; see [SECURITY.md](/docs/SECURITY.md) |
 | `ORCHESTRATOR_DB` | No | Default `./orchestrator.db` |
 | `DISABLE_API_REGISTER` | No | Default `1` — force web signup |
 | `ALLOW_INSECURE_DEFAULTS` | No | **Never `1` in production** |
@@ -266,7 +266,7 @@ Full list in [.env.example](../.env.example).
 ## 9. Replication checklist for another district
 
 - [ ] Clone repo (`git clone https://github.com/Daniel-offshoreunk-web/LocalAI.git`); copy `LICENSE.example` → `LICENSE` and **set the copyright holder** with district legal if needed
-- [ ] Provision hardware per [HARDWARE.md](HARDWARE.md)
+- [ ] Provision hardware per [HARDWARE.md](/docs/HARDWARE.md)
 - [ ] Install Docker; run `./scripts/up.sh` or follow §4
 - [ ] Generate secrets; configure `/etc/eps/cloud-lab.env`
 - [ ] Deploy gateway + admin (systemd or compose)
@@ -290,7 +290,7 @@ Full list in [.env.example](../.env.example).
 | AI 503 | LocalAI healthy? (`docker compose ps`; first boot can take several minutes) |
 | AI 401 | Student deployed? Token in DB? |
 
-Full runbook: [OPERATIONS.md](OPERATIONS.md)
+Full runbook: [OPERATIONS.md](/docs/OPERATIONS.md)
 
 ---
 
@@ -300,16 +300,16 @@ Full runbook: [OPERATIONS.md](OPERATIONS.md)
 - **Not stored by default:** full AI prompt/response content
 - **Surveys:** run outside this application (Google Forms, etc.)
 
-Align with district policy (e.g. MNCDPA). See [SECURITY.md](SECURITY.md).
+Align with district policy (e.g. MNCDPA). See [SECURITY.md](/docs/SECURITY.md).
 
 ---
 
 ## 12. Getting help
 
-1. [README.md](../README.md) — overview and quick start
-2. [ARCHITECTURE.md](ARCHITECTURE.md) — components and request flows
-3. [OPERATIONS.md](OPERATIONS.md) — day-2 operations
-4. [SECURITY.md](SECURITY.md) — hardening and pen-test prep
-5. [AUGUST-CHECKLIST.md](AUGUST-CHECKLIST.md) — release roadmap
+1. [README.md](/README.md) — overview and quick start
+2. [ARCHITECTURE.md](/docs/ARCHITECTURE.md) — components and request flows
+3. [OPERATIONS.md](/docs/OPERATIONS.md) — day-2 operations
+4. [SECURITY.md](/docs/SECURITY.md) — hardening and pen-test prep
+5. [AUGUST-CHECKLIST.md](/docs/AUGUST-CHECKLIST.md) — release roadmap
 
 Report security issues through your district's responsible disclosure channel.
