@@ -1,0 +1,71 @@
+# Production deployment — same application, scaled backing services.
+# Usage:
+#   DEPLOY_PROFILE=production docker compose -f docker-compose.production.yml up -d
+#
+# Prerequisites: TLS reverse proxy (Caddy/Traefik), Postgres, Redis, vLLM or Ollama GPU node.
+# See docs/REPLICATE.md § Production deployment.
+
+services:
+  gateway:
+    build: .
+    restart: always
+    env_file: .env
+    ports:
+      - "127.0.0.1:${GATEWAY_PORT:-8000}:8000"
+    volumes:
+      - eps-data:/var/lib/eps
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      ORCHESTRATOR_DB: /var/lib/eps/orchestrator.db
+      OLLAMA_URL: ${INFERENCE_URL:-http://inference:8000}
+    depends_on:
+      - redis
+    networks:
+      - gateway_net
+      - internal
+
+  admin:
+    build: .
+    restart: always
+    command: ["python", "-m", "src.main", "admin"]
+    network_mode: host
+    env_file: .env
+    volumes:
+      - eps-data:/var/lib/eps
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      ORCHESTRATOR_DB: /var/lib/eps/orchestrator.db
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    networks:
+      - internal
+    volumes:
+      - redis-data:/data
+
+  # Uncomment when vLLM is provisioned (OpenAI-compatible API on port 8000).
+  # inference:
+  #   image: vllm/vllm-openai:latest
+  #   restart: always
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [gpu]
+  #   command: ["--model", "meta-llama/Llama-3.1-8B-Instruct", "--host", "0.0.0.0"]
+  #   networks:
+  #     - internal
+
+networks:
+  gateway_net:
+    name: gateway_net
+    driver: bridge
+  internal:
+    driver: bridge
+
+volumes:
+  eps-data:
+  redis-data:

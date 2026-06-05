@@ -1,37 +1,76 @@
-import httpx # pyright: ignore[reportMissingImports]
-from fastapi import FastAPI, Request, Response, HTTPException # pyright: ignore[reportMissingImports]
+"""Entrypoint: run gateway (8000) or admin panel (8888).
 
-app = FastAPI(title="Secure Gatway")
+Production requires at minimum:
+  SESSION_SECRET, ADMIN_SECRET, ALLOW_INSECURE_DEFAULTS=0
+Local dev may set ALLOW_INSECURE_DEFAULTS=1 until secrets are configured.
+"""
 
-vllm_backend = "localost:8080"
+import argparse
+import logging
 
-@app.get("/health")
-async def health_check():
-    """Health check to confirm it is running"""
-    return {"status": "healthy", "gateway": "operational"}
+import uvicorn
 
-@app.post("/v1/chat/completions")
-async def chat_completions(request: Request):
-    """Need to add security protocols to this
-    Will respond to any reqeust and will not scan output or input"""
-    client_host = request.client.host
-    raw_body = await request.body
-    async with httpx.AsyncClient as client:
-        try:
-            vllm_response = client.post(
-                f"{vllm_backend}/v1/chat/completions",
-                headers=dict(request.headers),
-                content=raw_body,
-                timeout=60.0
+from .config import ADMIN_HOST, ADMIN_PORT, GATEWAY_HOST, GATEWAY_PORT
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="EPS orchestrator services")
+    parser.add_argument(
+        "service",
+        choices=("gateway", "admin", "both"),
+        nargs="?",
+        default="gateway",
+        help="gateway=public API :8000, admin=localhost panel :8888",
+    )
+    args = parser.parse_args()
+
+    if args.service == "gateway":
+        uvicorn.run(
+            "src.gateway:app",
+            host=GATEWAY_HOST,
+            port=GATEWAY_PORT,
+            reload=False,
+        )
+    elif args.service == "admin":
+        uvicorn.run(
+            "src.admin:app",
+            host=ADMIN_HOST,
+            port=ADMIN_PORT,
+            reload=False,
+        )
+    else:
+        import multiprocessing
+
+        def run_gateway() -> None:
+            uvicorn.run(
+                "src.gateway:app",
+                host=GATEWAY_HOST,
+                port=GATEWAY_PORT,
+                reload=False,
             )
-            return Response(
-                content=vllm_response.content,
-                status_code=vllm_response.status_code,
-                headers=dict(vllm_response.headers)
+
+        def run_admin() -> None:
+            uvicorn.run(
+                "src.admin:app",
+                host=ADMIN_HOST,
+                port=ADMIN_PORT,
+                reload=False,
             )
-        except httpx.RequestError as exc:
-            raise HTTPException(status_code=503, details=f"VLLM unreachable: {exc}")
+
+        procs = [
+            multiprocessing.Process(target=run_gateway, daemon=True),
+            multiprocessing.Process(target=run_admin, daemon=True),
+        ]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join()
+
 
 if __name__ == "__main__":
-    import uvicorn # pyright: ignore[reportMissingImports]
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    main()

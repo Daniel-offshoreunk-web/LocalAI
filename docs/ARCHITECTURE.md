@@ -1,0 +1,152 @@
+# Architecture
+
+## System context
+
+EPS Cloud Lab runs on **district-owned hardware**. Students use a browser; all compute stays on the school network. The design prevents anonymous compute abuse by requiring **teacher approval** before any workspace container is created.
+
+## Component diagram
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │           School network / VLAN          │
+                    │                                          │
+  Chromebook ──────►│  TLS proxy (Caddy/nginx) :443           │
+                    │           │                              │
+                    │           ▼                              │
+                    │  Gateway (FastAPI) :8000                 │
+                    │    • Student portal (HTML)               │
+                    │    • Session auth + CSRF                 │
+                    │    • /v1/chat/completions proxy          │
+                    │    • /lab → code-server proxy            │
+                    │           │                              │
+                    │     ┌─────┴─────┬──────────────┐        │
+                    │     ▼           ▼              ▼        │
+                    │  SQLite    Ollama/vLLM    Docker       │
+                    │  (state)   :11434         engine       │
+                    │  (local)   (local)            │        │
+                    │                               ▼        │
+                    │                    ┌─────────────────┐ │
+                    │                    │ eps-ws-alice    │ │
+                    │                    │ code-server     │ │
+                    │                    │ (gateway_net)   │ │
+                    │                    └─────────────────┘ │
+                    │                                          │
+  Teacher (SSH) ───►│  Admin panel :8888 (127.0.0.1 only)     │
+                    └─────────────────────────────────────────┘
+```
+
+## Services
+
+### Gateway (`src/gateway.py`, port 8000)
+
+Public-facing FastAPI application:
+
+- Serves student HTML templates
+- Validates session cookies and CSRF tokens
+- Proxies OpenAI-compatible requests to Ollama after token + rate-limit + prompt guard checks
+- Proxies HTTP/WebSocket for `/lab/*` to the student's code-server container
+
+### Admin (`src/admin.py`, port 8888)
+
+Localhost-only FastAPI application:
+
+- Lists pending registrations
+- Triggers `docker run` on approval
+- Shows security events (blocked prompts, failed logins)
+- Stop workspace action
+
+### Orchestrator (`src/orchestrator.py`)
+
+Invokes Docker via **argv-only** subprocess (no shell). Creates containers with:
+
+- `--cpus 0.25`, `--memory 512m`, `--pids-limit 128`
+- `--cap-drop ALL`, `--security-opt no-new-privileges`
+- Network `gateway_net` (no direct LAN access)
+- code-server with `--auth none` (gateway session is the auth boundary)
+
+### Inference (`src/inference.py`)
+
+Single path to the LLM backend:
+
+1. Resolve API token in SQLite
+2. Rate limit (IP + user)
+3. Prompt guard (regex + AST on fenced code)
+4. Proxy to `OLLAMA_URL`
+
+### Database (`src/db.py`)
+
+SQLite file (`orchestrator.db`) with tables:
+
+- `registrations` — users, status, password hash, API token, container name
+- `security_events` — audit metadata for admin dashboard
+
+## Request flows
+
+### Student signup
+
+```
+POST /signup → validate username/password → INSERT pending → session cookie → /dashboard
+```
+
+No Docker action occurs.
+
+### Teacher approval
+
+```
+Admin POST /approve/{id} → docker run eps-ws-{user} → status=deployed
+```
+
+### Open cloud IDE
+
+```
+GET /lab/ → session check → status=deployed → proxy to http://eps-ws-{user}:8080/
+```
+
+### AI chat (browser)
+
+```
+POST /app/ai/chat → session + CSRF → prompt guard → Ollama
+```
+
+### AI chat (Continue/Tabby)
+
+```
+POST /v1/chat/completions → Bearer sk-eps-… → DB lookup → guard → Ollama
+```
+
+## Deployment profiles
+
+| Profile | Compose file | Inference | Database |
+|---------|--------------|-----------|----------|
+| `pilot` | `docker-compose.pilot.yml` | Ollama localhost | SQLite |
+| `production` | `docker-compose.production.yml` | vLLM (+ Redis stub) | SQLite (Postgres planned) |
+
+## File layout
+
+```
+LocalAI/
+├── src/
+│   ├── gateway.py          # Public app
+│   ├── admin.py            # Admin app
+│   ├── student.py          # Portal routes
+│   ├── inference.py        # LLM proxy + guards
+│   ├── orchestrator.py     # Docker workspace lifecycle
+│   ├── db.py               # SQLite
+│   ├── security.py         # Input validation
+│   ├── prompt_guard.py     # Prompt/code scanner
+│   ├── rate_limit.py       # Token bucket
+│   └── templates/          # Jinja2 HTML
+├── deploy/systemd/         # Native service units
+├── deploy/nftables/        # Firewall example
+├── config/continue/        # Continue.dev template
+├── docs/                   # This documentation
+├── docker-compose.pilot.yml
+└── Dockerfile
+```
+
+## Extension points
+
+- **Custom code-server image:** set `WORKSPACE_IMAGE` to include Continue pre-configured
+- **vLLM:** point `OLLAMA_URL` to any OpenAI-compatible `/v1` endpoint
+- **SSO:** add OIDC middleware in front of gateway (production roadmap)
+- **Guardian AI:** extend `prompt_guard.py` + `security_events` (August roadmap)

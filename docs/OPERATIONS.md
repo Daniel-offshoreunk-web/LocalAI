@@ -1,0 +1,159 @@
+# Operations
+
+Day-2 runbook for staff maintaining EPS Cloud Lab in production.
+
+## Service management
+
+### Native (systemd)
+
+```bash
+sudo systemctl status eps-gateway eps-admin
+sudo systemctl restart eps-gateway
+sudo journalctl -u eps-gateway -n 100 -f
+```
+
+### Docker Compose
+
+```bash
+docker compose -f docker-compose.pilot.yml ps
+docker compose -f docker-compose.pilot.yml logs -f gateway
+docker compose -f docker-compose.pilot.yml restart gateway
+```
+
+## Health checks
+
+```bash
+curl -sf http://127.0.0.1:8000/health
+curl -sf http://127.0.0.1:11434/api/tags
+./scripts/verify-install.sh
+```
+
+Expected gateway response: `{"status":"healthy","gateway":"operational"}`
+
+## Backups
+
+**Critical file:** SQLite database (registrations, tokens, security events)
+
+```bash
+# Stop writes briefly (optional; SQLite supports hot copy on Linux)
+sudo cp /var/lib/eps/orchestrator.db /var/lib/eps/backups/orchestrator-$(date +%F).db
+```
+
+Schedule daily with cron:
+
+```cron
+0 2 * * * cp /var/lib/eps/orchestrator.db /var/lib/eps/backups/orchestrator-$(date +\%F).db
+```
+
+Student workspace data lives inside Docker containers (`eps-ws-*`). For persistence across container recreation, future releases will mount volumes per user. **Pilot:** treat workspaces as ephemeral.
+
+## Updates
+
+```bash
+cd /opt/eps-cloud-lab
+sudo -u eps git pull
+sudo -u eps venv/bin/pip install -r requirements.txt
+sudo systemctl restart eps-gateway eps-admin
+```
+
+Or with compose:
+
+```bash
+git pull
+docker compose -f docker-compose.pilot.yml up -d --build
+```
+
+**Always** backup `orchestrator.db` before upgrading.
+
+## Ollama model management
+
+```bash
+ollama list
+ollama pull llama3.1:8b
+# Change model in /etc/eps/cloud-lab.env:
+# DEFAULT_CHAT_MODEL=llama3.1:8b
+sudo systemctl restart eps-gateway
+```
+
+## User lifecycle
+
+| Action | How |
+|--------|-----|
+| Approve student | Admin → Deploy workspace |
+| Deny student | Admin → Deny |
+| Stop lab | Admin → Stop (container stopped, registration stays deployed) |
+| Remove container manually | `docker rm -f eps-ws-username` |
+| Re-provision | Admin → Deploy again (or delete container first) |
+
+## Common issues
+
+### Gateway: `Refusing to start: set SESSION_SECRET`
+
+Set `SESSION_SECRET` in env file or use `ALLOW_INSECURE_DEFAULTS=1` for dev only.
+
+### Admin: `403 Admin access is localhost-only`
+
+Connect via SSH and use `curl http://127.0.0.1:8888/` or browser with SSH port forward:
+
+```bash
+ssh -L 8888:127.0.0.1:8888 eps@lab-host
+```
+
+### IDE: "cloud lab is starting or offline"
+
+1. Confirm user status is `deployed` in admin
+2. `docker ps | grep eps-ws`
+3. `docker start eps-ws-username` if stopped
+4. Check gateway can reach container: `docker network inspect gateway_net`
+
+### AI: 503 Inference backend unreachable
+
+1. `systemctl status ollama`
+2. `curl http://127.0.0.1:11434/api/tags`
+3. Verify `OLLAMA_URL` in env matches
+
+### AI: 400 Request blocked by safety policy
+
+Legitimate code question triggered prompt guard. Review `security_events` in admin. Adjust lesson or refine guard rules in `src/prompt_guard.py` if false positive.
+
+### Docker: permission denied
+
+```bash
+sudo usermod -aG docker eps
+# log out and back in
+```
+
+## Monitoring (minimal pilot)
+
+- **Gateway up:** cron hits `/health` every 5 min
+- **Disk:** `df -h /var/lib/eps`
+- **Memory:** `free -h` — each workspace uses up to 512 MB
+- **Containers:** `docker ps --filter name=eps-ws`
+
+## Capacity planning
+
+Rough limits on a 32 GB RAM host:
+
+- Gateway + Ollama: ~8–16 GB (depends on model)
+- Per student container: 512 MB
+- **Example:** 16 GB for system/AI → ~30 containers theoretical; **recommend ≤15 concurrent** for headroom
+
+See [HARDWARE.md](HARDWARE.md) for GPU tiers.
+
+## Logs
+
+| Component | Location |
+|-----------|----------|
+| Gateway (systemd) | `journalctl -u eps-gateway` |
+| Admin (systemd) | `journalctl -u eps-admin` |
+| Ollama | `journalctl -u ollama` |
+| Docker | `docker logs eps-ws-username` |
+
+Application logs do **not** include full AI prompts by default.
+
+## End of semester
+
+1. Stop all workspaces from admin
+2. Export backup of `orchestrator.db`
+3. Optional: `docker rm -f $(docker ps -aq --filter name=eps-ws)`
+4. Archive documentation and survey results per research protocol

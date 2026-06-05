@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EPS Cloud Lab</title>
+  <style>
+    :root { --bg:#0c1118; --card:#151d2b; --text:#e8eef7; --muted:#8fa3bf; --accent:#4c9aff; }
+    body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1.5rem; }
+    .card { background:var(--card); border-radius:12px; padding:2rem; width:100%; max-width:420px; }
+    h1 { margin:0 0 .25rem; font-size:1.4rem; }
+    p.lead { color:var(--muted); margin:0 0 1.5rem; font-size:.95rem; }
+    .tabs { margin-bottom:1.25rem; font-size:.85rem; color:var(--muted); }
+    .tabs a { color:var(--accent); }
+    label { display:block; font-size:.8rem; color:var(--muted); margin:.75rem 0 .25rem; }
+    input { width:100%; padding:.6rem .75rem; border-radius:8px; border:1px solid #2a3a52; background:#0c1118; color:var(--text); box-sizing:border-box; }
+    button { margin-top:1.25rem; width:100%; padding:.7rem; border:none; border-radius:8px; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; }
+    .error { background:#3a1a1a; color:#f07178; padding:.6rem .75rem; border-radius:8px; font-size:.85rem; margin-bottom:1rem; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Cloud Computer Lab</h1>
+    <p class="lead">Use a full coding environment and AI on school hardware — nothing to install on your Chromebook.</p>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <div id="login-panel" class="{% if mode == 'signup' %}hidden{% endif %}">
+      <p class="tabs"><strong>Sign in</strong> · <a href="#" onclick="showSignup();return false;">Create account</a></p>
+      <form method="post" action="/login">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Username</label>
+        <input name="username" required autocomplete="username">
+        <label>Password</label>
+        <input name="password" type="password" required minlength="8" autocomplete="current-password">
+        <button type="submit">Sign in</button>
+      </form>
+    </div>
+    <div id="signup-panel" class="{% if mode != 'signup' %}hidden{% endif %}">
+      <p class="tabs"><a href="#" onclick="showLogin();return false;">Sign in</a> · <strong>Create account</strong></p>
+      <form method="post" action="/signup">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Username</label>
+        <input name="username" required>
+        <label>Display name (optional)</label>
+        <input name="display_name" maxlength="64">
+        <label>Password (8+ characters)</label>
+        <input name="password" type="password" required minlength="8">
+        <label>Confirm password</label>
+        <input name="password_confirm" type="password" required minlength="8">
+        <button type="submit">Request lab access</button>
+      </form>
+      <p class="lead" style="margin-top:1rem;font-size:.8rem;">A teacher must approve your account before the lab starts.</p>
+    </div>
+  </div>
+  <script>
+    function showSignup(){ document.getElementById('login-panel').classList.add('hidden'); document.getElementById('signup-panel').classList.remove('hidden'); }
+    function showLogin(){ document.getElementById('signup-panel').classList.add('hidden'); document.getElementById('login-panel').classList.remove('hidden'); }
+  </script>
+</body>
+</html>

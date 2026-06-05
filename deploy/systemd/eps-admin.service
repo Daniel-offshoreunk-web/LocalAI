@@ -1,0 +1,24 @@
+[Unit]
+Description=EPS Cloud Lab — admin panel (localhost :8888)
+After=network-online.target docker.service eps-gateway.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=eps
+Group=eps
+WorkingDirectory=/opt/eps-cloud-lab
+EnvironmentFile=/etc/eps/cloud-lab.env
+ExecStart=/opt/eps-cloud-lab/venv/bin/python -m src.main admin
+Restart=on-failure
+RestartSec=5
+# Binds 127.0.0.1 only (see ADMIN_HOST in env)
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/eps
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your Cloud Lab</title>
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <style>
+    :root { --bg:#0c1118; --card:#151d2b; --text:#e8eef7; --muted:#8fa3bf; --accent:#4c9aff; --ok:#3ecf8e; --warn:#f0b429; }
+    body { font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); margin:0; padding:2rem; line-height:1.5; }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
+    h1 { margin:0; font-size:1.5rem; }
+    .badge { display:inline-block; padding:.2rem .6rem; border-radius:6px; font-size:.75rem; font-weight:700; text-transform:uppercase; }
+    .badge-pending { background:#3a2f14; color:var(--warn); }
+    .badge-deployed { background:#143a2a; color:var(--ok); }
+    .badge-denied { background:#3a1a1a; color:#f07178; }
+    .grid { display:grid; gap:1.5rem; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); }
+    .card { background:var(--card); border-radius:12px; padding:1.5rem; }
+    .btn { display:inline-block; padding:.65rem 1.2rem; background:var(--accent); color:#fff; text-decoration:none; border-radius:8px; font-weight:600; border:none; cursor:pointer; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    #chat-log { height:200px; overflow-y:auto; background:#0c1118; border-radius:8px; padding:.75rem; font-size:.9rem; margin-bottom:.75rem; }
+    .msg-user { color:var(--accent); }
+    .msg-ai { color:var(--text); margin-bottom:.5rem; }
+    textarea { width:100%; box-sizing:border-box; border-radius:8px; border:1px solid #2a3a52; background:#0c1118; color:var(--text); padding:.5rem; min-height:72px; }
+    code.token { word-break:break-all; font-size:.75rem; color:var(--muted); }
+    form.logout { display:inline; }
+    button.link { background:none; border:none; color:var(--muted); cursor:pointer; text-decoration:underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Hello, {{ user.display_name or user.username }}</h1>
+      <span class="badge badge-{{ user.status }}">{{ user.status }}</span>
+    </div>
+    <form class="logout" method="post" action="/logout">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="link">Sign out</button>
+    </form>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Cloud IDE</h2>
+      {% if user.status == 'deployed' %}
+      <p>Full VS Code in your browser, running on school servers.</p>
+      <p><a class="btn" href="/lab/" target="_blank" rel="noopener">Open Cloud IDE</a></p>
+      {% elif user.status == 'pending' %}
+      <p>Your account is waiting for teacher approval. Check back soon.</p>
+      {% elif user.status == 'denied' %}
+      <p>Lab access was not approved. Contact your teacher.</p>
+      {% else %}
+      <p>Status: {{ user.status }}</p>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2>AI assistant</h2>
+      {% if user.status == 'deployed' %}
+      <div id="chat-log"></div>
+      <textarea id="chat-input" placeholder="Ask about your code…"></textarea>
+      <p style="margin-top:.75rem"><button class="btn" id="chat-send">Send</button></p>
+      {% else %}
+      <p>Available after your lab is approved.</p>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h2>Advanced (Continue / Tabby)</h2>
+      <p>If your teacher installed the IDE extension, use this API key — treat it like a password:</p>
+      {% if user.api_token %}
+      <code class="token">{{ user.api_token }}</code>
+      <p style="font-size:.8rem;color:var(--muted)">Gateway URL: same host, path <code>/v1</code></p>
+      {% else %}
+      <p>No token assigned yet.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  {% if user.status == 'deployed' %}
+  <script>
+    const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    const log = document.getElementById('chat-log');
+    document.getElementById('chat-send').onclick = async () => {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+      log.innerHTML += `<div class="msg-user"><strong>You:</strong> ${text.replace(/</g,'&lt;')}</div>`;
+      input.value = '';
+      try {
+        const res = await fetch('/app/ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+          body: JSON.stringify({ message: text }),
+          credentials: 'same-origin',
+        });
+        const data = await res.json();
+        const reply = res.ok ? data.reply : (data.detail || 'Error');
+        log.innerHTML += `<div class="msg-ai"><strong>AI:</strong> ${String(reply).replace(/</g,'&lt;')}</div>`;
+      } catch (e) {
+        log.innerHTML += `<div class="msg-ai">Network error.</div>`;
+      }
+      log.scrollTop = log.scrollHeight;
+    };
+  </script>
+  {% endif %}
+</body>
+</html>

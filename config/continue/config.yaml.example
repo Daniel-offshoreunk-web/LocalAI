@@ -1,0 +1,34 @@
+# Continue.dev — point at the EPS gateway OpenAI-compatible API.
+# Install: Continue extension in code-server, then copy to ~/.continue/config.yaml
+# Replace GATEWAY_URL and paste the student's API key from the dashboard (Advanced section).
+
+name: EPS Cloud Lab
+version: 0.0.1
+schema: v1
+
+models:
+  - name: EPS Llama 3.1 8B
+    provider: openai
+    model: llama3.1:8b
+    apiBase: GATEWAY_URL/v1
+    apiKey: sk-eps-PASTE_STUDENT_TOKEN_HERE
+    roles:
+      - chat
+      - edit
+
+  - name: EPS Autocomplete
+    provider: openai
+    model: llama3.1:8b
+    apiBase: GATEWAY_URL/v1
+    apiKey: sk-eps-PASTE_STUDENT_TOKEN_HERE
+    roles:
+      - autocomplete
+
+tabAutocompleteModel:
+  name: EPS Autocomplete
+  provider: openai
+  model: llama3.1:8b
+  apiBase: GATEWAY_URL/v1
+  apiKey: sk-eps-PASTE_STUDENT_TOKEN_HERE
+
+allowAnonymousTelemetry: false

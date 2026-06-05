@@ -1,0 +1,25 @@
+[Unit]
+Description=EPS Cloud Lab — student gateway (port 8000)
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=eps
+Group=eps
+WorkingDirectory=/opt/eps-cloud-lab
+EnvironmentFile=/etc/eps/cloud-lab.env
+ExecStart=/opt/eps-cloud-lab/venv/bin/python -m src.main gateway
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/eps
+
+[Install]
+WantedBy=multi-user.target

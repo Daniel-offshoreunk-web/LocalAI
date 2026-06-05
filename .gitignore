@@ -13,3 +13,9 @@ build/
 .ruff_cache/
 .coverage
 htmlcov/
+orchestrator.db
+prompt.local.md
+*.local.md
+.env
+data/
+*.hidden
