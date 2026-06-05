@@ -49,6 +49,9 @@
       <p>Your account is waiting for teacher approval. Check back soon.</p>
       {% elif user.status == 'denied' %}
       <p>Lab access was not approved. Contact your teacher.</p>
+      {% elif user.status == 'failed' %}
+      <p>Lab setup failed. Ask your teacher to click <strong>Deploy workspace</strong> again in the admin panel.</p>
+      {% if user.error_message %}<p style="font-size:.8rem;color:var(--muted)"><strong>Detail:</strong> {{ user.error_message }}</p>{% endif %}
       {% else %}
       <p>Status: {{ user.status }}</p>
       {% endif %}

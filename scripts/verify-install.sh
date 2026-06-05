@@ -35,7 +35,17 @@ else
   echo "  start LocalAI: docker run -p 8080:8080 localai/localai:latest-aio-cpu"
 fi
 
-echo "==> Docker"
-docker info >/dev/null 2>&1 && echo "  docker OK"
+echo "==> Docker (host)"
+docker info >/dev/null 2>&1 && echo "  host docker OK"
+
+echo "==> Docker (admin container — needed for Deploy workspace)"
+if docker compose exec -T admin docker network inspect gateway_net >/dev/null 2>&1; then
+  echo "  admin can reach docker.sock OK"
+else
+  echo "  FAIL: admin cannot use docker.sock (Fedora SELinux?)"
+  echo "  Fix: ./scripts/down.sh && ./scripts/up.sh"
+  echo "  compose needs docker.sock mount :z and security_opt: label=disable"
+  exit 1
+fi
 
 echo "Done."
